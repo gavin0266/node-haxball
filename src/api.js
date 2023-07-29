@@ -1,5 +1,5 @@
-function abcHaxballAPI(window, config){
-  var { 
+function abcHaxballAPI(window, config) {
+  var {
     setTimeout,
     clearTimeout,
     setInterval,
@@ -12,20 +12,29 @@ function abcHaxballAPI(window, config){
     XMLHttpRequest,
     performance,
     JSON5,
-    pako
-  } = window;  
+    pako,
+  } = window;
 
-  var RTCPeerConnection = window.webkitRTCPeerConnection || window.mozRTCPeerConnection || window.RTCPeerConnection;
-  var RTCIceCandidate = window.webkitRTCIceCandidate || window.mozRTCIceCandidate || window.RTCIceCandidate;
-  var RTCSessionDescription = window.webkitRTCSessionDescription || window.mozRTCSessionDescription || window.RTCSessionDescription;
+  var RTCPeerConnection =
+    window.webkitRTCPeerConnection ||
+    window.mozRTCPeerConnection ||
+    window.RTCPeerConnection;
+  var RTCIceCandidate =
+    window.webkitRTCIceCandidate ||
+    window.mozRTCIceCandidate ||
+    window.RTCIceCandidate;
+  var RTCSessionDescription =
+    window.webkitRTCSessionDescription ||
+    window.mozRTCSessionDescription ||
+    window.RTCSessionDescription;
 
-  (!config) && (config = {});
-  (!config.backend) && (config.backend = {});
-  (!config.backend.hostname) && (config.backend.hostname = "www.haxball.com");
-  (!config.backend.hostnameWs) && (config.backend.hostnameWs = "p2p.haxball.com");
-  (config.backend.secure==null) && (config.backend.secure = true);
-  (config.fixNames==null) && (config.fixNames = true);
-  
+  !config && (config = {});
+  !config.backend && (config.backend = {});
+  !config.backend.hostname && (config.backend.hostname = "www.haxball.com");
+  !config.backend.hostnameWs && (config.backend.hostnameWs = "p2p.haxball.com");
+  config.backend.secure == null && (config.backend.secure = true);
+  config.fixNames == null && (config.fixNames = true);
+
   var currentLanguageAbbr = "GB";
   const defaultVersion = config.version || 9;
 
@@ -34,7 +43,7 @@ function abcHaxballAPI(window, config){
     ConnectingToPeer: 1,
     AwaitingState: 2,
     Active: 3,
-    ConnectionFailed: 4
+    ConnectionFailed: 4,
   };
 
   const OperationType = {
@@ -62,7 +71,7 @@ function abcHaxballAPI(window, config){
     SetDiscProperties: 21,
     JoinRoom: 22,
     ReorderPlayers: 23,
-    CustomEvent: 24
+    CustomEvent: 24,
   };
 
   const CollisionFlags = {
@@ -97,33 +106,33 @@ function abcHaxballAPI(window, config){
     c0: 28,
     c1: 29,
     c2: 30,
-    c3: 31
+    c3: 31,
   };
 
   const Direction = {
     Backward: -1,
     Still: 0,
-    Forward: 1
+    Forward: 1,
   };
-  
+
   const CameraFollow = {
     None: 0,
-    Player: 1
+    Player: 1,
   };
-  
+
   const BackgroundType = {
     None: 0,
     Grass: 1,
-    Hockey: 2
+    Hockey: 2,
   };
-  
+
   const GamePlayState = {
     BeforeKickOff: 0,
     Playing: 1,
     AfterGoal: 2,
-    Ending: 3
+    Ending: 3,
   };
-  
+
   const VariableType = {
     Void: 0,
     Boolean: 1,
@@ -138,7 +147,7 @@ function abcHaxballAPI(window, config){
     BgType: 10,
     CameraFollow: 11,
     KickOffReset: 12,
-    Flag: 13
+    Flag: 13,
   };
 
   const ErrorCodes = {
@@ -197,79 +206,137 @@ function abcHaxballAPI(window, config){
     LanguageAlreadyExistsError: 52,
     CurrentLanguageRemovalError: 53,
     LanguageDoesNotExistError: 54,
-    BadActorError: 55
+    BadActorError: 55,
   };
 
   const RendererTextIndices = {
     timeIsUp1: 0,
     timeIsUp2: 1,
-    redIsVictorious1: 2, 
+    redIsVictorious1: 2,
     redIsVictorious2: 3,
-    redScores1: 4, 
-    redScores2: 5, 
-    blueIsVictorious1: 6, 
-    blueIsVictorious2: 7, 
-    blueScores1: 8, 
-    blueScores2: 9, 
-    gamePaused1: 10, 
-    gamePaused2: 11
+    redScores1: 4,
+    redScores2: 5,
+    blueIsVictorious1: 6,
+    blueIsVictorious2: 7,
+    blueScores1: 8,
+    blueScores2: 9,
+    gamePaused1: 10,
+    gamePaused2: 11,
   };
-  
+
   const EnglishErrorsTextMap = {
-    [ErrorCodes.Empty]: ()=>"",
-    [ErrorCodes.ConnectionClosed]: (reason)=>"Connection closed" + ((reason != null) ? " ("+reason+")" : ""),
-    [ErrorCodes.GameStateTimeout]: ()=>"Game state timeout",
-    [ErrorCodes.RoomClosed]: ()=>"The room was closed.",
-    [ErrorCodes.RoomFull]: ()=>"The room is full.",
-    [ErrorCodes.WrongPassword]: ()=>"Wrong password.",
-    [ErrorCodes.BannedBefore]: ()=>"You are banned from this room.",
-    [ErrorCodes.IncompatibleVersion]: ()=>"Incompatible game version.",
-    [ErrorCodes.FailedHost]: ()=>"Failed to connect to room host. If this problem persists please see the troubleshooting guide: https://github.com/haxball/haxball-issues/wiki/Connection-Issues",
-    [ErrorCodes.Unknown]: ()=>"An error ocurred while attempting to join the room.<br><br>This might be caused by a browser extension, try disabling all extensions and refreshing the site.<br><br>The error has been printed to the inspector console.",
-    [ErrorCodes.Cancelled]: ()=>"Cancelled",
-    [ErrorCodes.FailedPeer]: ()=>"Failed to connect to peer.",
-    [ErrorCodes.KickedNow]: (reason, ban, byName)=>"You were " + (ban ? "banned" : "kicked") + (byName?.length > 0 ? (" by " + byName) : "") + (reason?.length > 0 ? (" ("+reason+")") : ""),
-    [ErrorCodes.Failed]: ()=>"Failed",
-    [ErrorCodes.MasterConnectionError]: ()=>"Master connection error",
-    [ErrorCodes.StadiumParseError]: (section, index)=>"Error in \"" + section + "\" index: " + index,
-    [ErrorCodes.StadiumParseSyntaxError]: (lineNumber)=>"SyntaxError in line: " + lineNumber,
-    [ErrorCodes.StadiumParseUnknownError]: ()=>"Error loading stadium file.",
-    [ErrorCodes.ObjectCastError]: (object, type)=>"Cannot cast " + K.ye(object) + " to " + K.ye(type),
-    [ErrorCodes.TeamColorsReadError]: ()=>"too many",
-    [ErrorCodes.UTF8CharacterDecodeError]: (offset, charCode)=>"Cannot decode UTF8 character at offset " + offset + ": charCode (" + charCode + ") is invalid",
-    [ErrorCodes.ReadTooMuchError]: ()=>"Read too much",
-    [ErrorCodes.ReadWrongStringLengthError]: (expectedLength)=>"Actual string length differs from the specified: " + expectedLength + " bytes",
-    [ErrorCodes.EncodeUTF8CharNegativeError]: (num)=>"Cannot encode UTF8 character: charCode (" + num + ") is negative",
-    [ErrorCodes.EncodeUTF8CharTooLargeError]: (num)=>"Cannot encode UTF8 character: charCode (" + num + ") is too large (>= 0x80000000)",
-    [ErrorCodes.CalculateLengthOfUTF8CharNegativeError]: (num)=>"Cannot calculate length of UTF8 character: charCode (" + num + ") is negative",
-    [ErrorCodes.CalculateLengthOfUTF8CharTooLargeError]: (num)=>"Cannot calculate length of UTF8 character: charCode (" + num + ") is too large (>= 0x80000000)",
-    [ErrorCodes.BufferResizeParameterTooSmallError]: ()=>"Can't resize buffer to a capacity lower than 1",
-    [ErrorCodes.BadColorError]: ()=>"Bad color",
-    [ErrorCodes.BadTeamError]: ()=>"Bad team value",
-    [ErrorCodes.StadiumLimitsExceededError]: ()=>"Error",
-    [ErrorCodes.MissingActionConfigError]: ()=>"Class doesn't have a config",
-    [ErrorCodes.UnregisteredActionError]: ()=>"Tried to pack unregistered action",
-    [ErrorCodes.MissingImplementationError]: ()=>"missing implementation",
-    [ErrorCodes.AnnouncementActionMessageTooLongError]: ()=>"message too long",
-    [ErrorCodes.ChatActionMessageTooLongError]: ()=>"message too long",
-    [ErrorCodes.KickBanReasonTooLongError]: ()=>"string too long",
-    [ErrorCodes.ChangeTeamColorsInvalidTeamIdError]: ()=>"Invalid team id",
-    [ErrorCodes.MissingRecaptchaCallbackError]: ()=>"Recaptcha requested. Either set onRequestRecaptcha or set a working token while creating/joining a room.",
-    [ErrorCodes.ReplayFileVersionMismatchError]: ()=>"The replay data is of a different version",
-    [ErrorCodes.ReplayFileReadError]: ()=>"Couldn't load replay data.",
-    [ErrorCodes.JoinRoomNullIdAuthError]: ()=>"id and authObj cannot be null. (inside 1st parameter)",
-    [ErrorCodes.PlayerNameTooLongError]: (conn, auth, name)=>"name too long",
-    [ErrorCodes.PlayerCountryTooLongError]: (conn, auth, name, flag)=>"country too long",
-    [ErrorCodes.PlayerAvatarTooLongError]: (conn, auth, name, flag, avatar)=>"avatar too long",
-    [ErrorCodes.PlayerJoinBlockedByMPDError]: (conn, auth, name, flag, avatar)=>"Player join not allowed: " + name + " " + flag + " " + avatar + " " + conn + " " + auth,
-    [ErrorCodes.PlayerJoinBlockedByORError]: (playerObj)=>"Player join event blocked by OperationReceived: " + playerObj,
-    [ErrorCodes.PluginNotFoundError]: (pluginIndex)=>"Plugin not found at index " + pluginIndex,
-    [ErrorCodes.PluginNameChangeNotAllowedError]: ()=>"Plugin name should not change",
-    [ErrorCodes.AuthFromKeyInvalidIdFormatError]: ()=>"Invalid id format",
-    [ErrorCodes.LanguageAlreadyExistsError]: (abbr)=>"Language already exists: " + abbr,
-    [ErrorCodes.CurrentLanguageRemovalError]: ()=>"Current language cannot be removed. Change to a different language first.",
-    [ErrorCodes.LanguageDoesNotExistError]: (abbr)=>"Language does not exist: " + abbr,
-    [ErrorCodes.BadActorError]: ()=>"Bad Actor"
+    [ErrorCodes.Empty]: () => "",
+    [ErrorCodes.ConnectionClosed]: (reason) =>
+      "Connection closed" + (reason != null ? " (" + reason + ")" : ""),
+    [ErrorCodes.GameStateTimeout]: () => "Game state timeout",
+    [ErrorCodes.RoomClosed]: () => "The room was closed.",
+    [ErrorCodes.RoomFull]: () => "The room is full.",
+    [ErrorCodes.WrongPassword]: () => "Wrong password.",
+    [ErrorCodes.BannedBefore]: () => "You are banned from this room.",
+    [ErrorCodes.IncompatibleVersion]: () => "Incompatible game version.",
+    [ErrorCodes.FailedHost]: () =>
+      "Failed to connect to room host. If this problem persists please see the troubleshooting guide: https://github.com/haxball/haxball-issues/wiki/Connection-Issues",
+    [ErrorCodes.Unknown]: () =>
+      "An error ocurred while attempting to join the room.<br><br>This might be caused by a browser extension, try disabling all extensions and refreshing the site.<br><br>The error has been printed to the inspector console.",
+    [ErrorCodes.Cancelled]: () => "Cancelled",
+    [ErrorCodes.FailedPeer]: () => "Failed to connect to peer.",
+    [ErrorCodes.KickedNow]: (reason, ban, byName) =>
+      "You were " +
+      (ban ? "banned" : "kicked") +
+      (byName?.length > 0 ? " by " + byName : "") +
+      (reason?.length > 0 ? " (" + reason + ")" : ""),
+    [ErrorCodes.Failed]: () => "Failed",
+    [ErrorCodes.MasterConnectionError]: () => "Master connection error",
+    [ErrorCodes.StadiumParseError]: (section, index) =>
+      'Error in "' + section + '" index: ' + index,
+    [ErrorCodes.StadiumParseSyntaxError]: (lineNumber) =>
+      "SyntaxError in line: " + lineNumber,
+    [ErrorCodes.StadiumParseUnknownError]: () => "Error loading stadium file.",
+    [ErrorCodes.ObjectCastError]: (object, type) =>
+      "Cannot cast " + K.ye(object) + " to " + K.ye(type),
+    [ErrorCodes.TeamColorsReadError]: () => "too many",
+    [ErrorCodes.UTF8CharacterDecodeError]: (offset, charCode) =>
+      "Cannot decode UTF8 character at offset " +
+      offset +
+      ": charCode (" +
+      charCode +
+      ") is invalid",
+    [ErrorCodes.ReadTooMuchError]: () => "Read too much",
+    [ErrorCodes.ReadWrongStringLengthError]: (expectedLength) =>
+      "Actual string length differs from the specified: " +
+      expectedLength +
+      " bytes",
+    [ErrorCodes.EncodeUTF8CharNegativeError]: (num) =>
+      "Cannot encode UTF8 character: charCode (" + num + ") is negative",
+    [ErrorCodes.EncodeUTF8CharTooLargeError]: (num) =>
+      "Cannot encode UTF8 character: charCode (" +
+      num +
+      ") is too large (>= 0x80000000)",
+    [ErrorCodes.CalculateLengthOfUTF8CharNegativeError]: (num) =>
+      "Cannot calculate length of UTF8 character: charCode (" +
+      num +
+      ") is negative",
+    [ErrorCodes.CalculateLengthOfUTF8CharTooLargeError]: (num) =>
+      "Cannot calculate length of UTF8 character: charCode (" +
+      num +
+      ") is too large (>= 0x80000000)",
+    [ErrorCodes.BufferResizeParameterTooSmallError]: () =>
+      "Can't resize buffer to a capacity lower than 1",
+    [ErrorCodes.BadColorError]: () => "Bad color",
+    [ErrorCodes.BadTeamError]: () => "Bad team value",
+    [ErrorCodes.StadiumLimitsExceededError]: () => "Error",
+    [ErrorCodes.MissingActionConfigError]: () => "Class doesn't have a config",
+    [ErrorCodes.UnregisteredActionError]: () =>
+      "Tried to pack unregistered action",
+    [ErrorCodes.MissingImplementationError]: () => "missing implementation",
+    [ErrorCodes.AnnouncementActionMessageTooLongError]: () =>
+      "message too long",
+    [ErrorCodes.ChatActionMessageTooLongError]: () => "message too long",
+    [ErrorCodes.KickBanReasonTooLongError]: () => "string too long",
+    [ErrorCodes.ChangeTeamColorsInvalidTeamIdError]: () => "Invalid team id",
+    [ErrorCodes.MissingRecaptchaCallbackError]: () =>
+      "Recaptcha requested. Either set onRequestRecaptcha or set a working token while creating/joining a room.",
+    [ErrorCodes.ReplayFileVersionMismatchError]: () =>
+      "The replay data is of a different version",
+    [ErrorCodes.ReplayFileReadError]: () => "Couldn't load replay data.",
+    [ErrorCodes.JoinRoomNullIdAuthError]: () =>
+      "id and authObj cannot be null. (inside 1st parameter)",
+    [ErrorCodes.PlayerNameTooLongError]: (conn, auth, name) => "name too long",
+    [ErrorCodes.PlayerCountryTooLongError]: (conn, auth, name, flag) =>
+      "country too long",
+    [ErrorCodes.PlayerAvatarTooLongError]: (conn, auth, name, flag, avatar) =>
+      "avatar too long",
+    [ErrorCodes.PlayerJoinBlockedByMPDError]: (
+      conn,
+      auth,
+      name,
+      flag,
+      avatar
+    ) =>
+      "Player join not allowed: " +
+      name +
+      " " +
+      flag +
+      " " +
+      avatar +
+      " " +
+      conn +
+      " " +
+      auth,
+    [ErrorCodes.PlayerJoinBlockedByORError]: (playerObj) =>
+      "Player join event blocked by OperationReceived: " + playerObj,
+    [ErrorCodes.PluginNotFoundError]: (pluginIndex) =>
+      "Plugin not found at index " + pluginIndex,
+    [ErrorCodes.PluginNameChangeNotAllowedError]: () =>
+      "Plugin name should not change",
+    [ErrorCodes.AuthFromKeyInvalidIdFormatError]: () => "Invalid id format",
+    [ErrorCodes.LanguageAlreadyExistsError]: (abbr) =>
+      "Language already exists: " + abbr,
+    [ErrorCodes.CurrentLanguageRemovalError]: () =>
+      "Current language cannot be removed. Change to a different language first.",
+    [ErrorCodes.LanguageDoesNotExistError]: (abbr) =>
+      "Language does not exist: " + abbr,
+    [ErrorCodes.BadActorError]: () => "Bad Actor",
   };
 
   const EnglishConnectionStateTextMap = {
@@ -281,18 +348,18 @@ function abcHaxballAPI(window, config){
   };
 
   const EnglishRendererTextMap = {
-    [RendererTextIndices.timeIsUp1]: "Time is", 
-    [RendererTextIndices.timeIsUp2]: "Up!", 
-    [RendererTextIndices.redIsVictorious1]: "Red is", 
-    [RendererTextIndices.redIsVictorious2]: "Victorious!", 
-    [RendererTextIndices.redScores1]: "Red", 
-    [RendererTextIndices.redScores2]: "Scores!", 
-    [RendererTextIndices.blueIsVictorious1]: "Blue is", 
-    [RendererTextIndices.blueIsVictorious2]: "Victorious!", 
-    [RendererTextIndices.blueScores1]: "Blue", 
-    [RendererTextIndices.blueScores2]: "Scores!", 
-    [RendererTextIndices.gamePaused1]: "Game", 
-    [RendererTextIndices.gamePaused2]: "Paused" 
+    [RendererTextIndices.timeIsUp1]: "Time is",
+    [RendererTextIndices.timeIsUp2]: "Up!",
+    [RendererTextIndices.redIsVictorious1]: "Red is",
+    [RendererTextIndices.redIsVictorious2]: "Victorious!",
+    [RendererTextIndices.redScores1]: "Red",
+    [RendererTextIndices.redScores2]: "Scores!",
+    [RendererTextIndices.blueIsVictorious1]: "Blue is",
+    [RendererTextIndices.blueIsVictorious2]: "Victorious!",
+    [RendererTextIndices.blueScores1]: "Blue",
+    [RendererTextIndices.blueScores2]: "Scores!",
+    [RendererTextIndices.gamePaused1]: "Game",
+    [RendererTextIndices.gamePaused2]: "Paused",
   };
 
   // global functions to run nullable functions:
@@ -319,34 +386,39 @@ function abcHaxballAPI(window, config){
   };
   function vb() {}
   vb.b = !0;
-  vb.i = function (a, b, c, d, e) {
-    null != a && a(b, c, d, e);
+  vb.i = async function (a, b, c, d, e) {
+    console.log(e);
+    null != a && (await a(b, c, d, e));
   };
 
   /////////////////////////////////
 
   const allLanguages = {};
-  var currentLanguage = null, allRooms = []; // all current room objects have to be stored in this array so that they can receive the language changed signal directly from API.
+  var currentLanguage = null,
+    allRooms = []; // all current room objects have to be stored in this array so that they can receive the language changed signal directly from API.
 
-  function removeRoomFromList(room){
-    if (!room)
-      return;
+  function removeRoomFromList(room) {
+    if (!room) return;
     var idx = allRooms.indexOf(room);
-    if (idx<0)
-      return;
+    if (idx < 0) return;
     allRooms.splice(idx, 1);
   }
 
-  function LanguageData(){
+  function LanguageData() {
     this.errorsTextMap = null;
     this.connectionStateTextMap = null;
     this.rendererTextMap = null;
   }
 
   const Language = {
-    add: function(abbr, errorsTextMap, connectionStateTextMap, rendererTextMap){
+    add: function (
+      abbr,
+      errorsTextMap,
+      connectionStateTextMap,
+      rendererTextMap
+    ) {
       abbr = (abbr || "").toUpperCase();
-      if (allLanguages[abbr]!=null)
+      if (allLanguages[abbr] != null)
         throw createError(ErrorCodes.LanguageAlreadyExistsError, abbr); // "Language already exists: "+abbr
       var langData = new LanguageData();
       langData.errorsTextMap = errorsTextMap;
@@ -354,79 +426,81 @@ function abcHaxballAPI(window, config){
       langData.rendererTextMap = rendererTextMap;
       allLanguages[abbr] = langData;
     },
-    remove: function(abbr){
+    remove: function (abbr) {
       abbr = (abbr || "").toUpperCase();
-      if (abbr==currentLanguageAbbr)
+      if (abbr == currentLanguageAbbr)
         throw createError(ErrorCodes.CurrentLanguageRemovalError, abbr); // "Current language cannot be removed. Change to a different language first."
       if (!allLanguages[abbr])
         throw createError(ErrorCodes.LanguageDoesNotExistError, abbr); // "Language does not exist: "+abbr
       delete allLanguages[abbr];
-    }
+    },
   };
 
   Object.defineProperty(Language, "current", {
-    get: function(){
+    get: function () {
       return currentLanguageAbbr;
     },
-    set: function(abbr){
+    set: function (abbr) {
       abbr = (abbr || "").toUpperCase();
       if (!Object.keys(allLanguages).includes(abbr))
         throw createError(ErrorCodes.LanguageDoesNotExistError, abbr); // "Language does not exist: "+abbr
-      if (currentLanguageAbbr==abbr)
-        return;
+      if (currentLanguageAbbr == abbr) return;
       currentLanguageAbbr = abbr;
       currentLanguage = allLanguages[abbr];
-      allRooms.forEach((room)=>{
+      allRooms.forEach((room) => {
         ia.i(room._onLanguageChange, abbr);
       });
-    }
+    },
   });
 
   Object.defineProperty(Language, "currentData", {
-    get: function(){
+    get: function () {
       return currentLanguage;
-    }
+    },
   });
 
   Object.defineProperty(Language, "indices", {
-    get: function(){
+    get: function () {
       return {
         ErrorCodes,
         ConnectionState,
-        RendererTextIndices
+        RendererTextIndices,
       };
-    }
+    },
   });
 
-  Language.add("GB", EnglishErrorsTextMap, EnglishConnectionStateTextMap, EnglishRendererTextMap);
+  Language.add(
+    "GB",
+    EnglishErrorsTextMap,
+    EnglishConnectionStateTextMap,
+    EnglishRendererTextMap
+  );
   // one may add all languages here.
 
   currentLanguage = allLanguages[currentLanguageAbbr];
 
-  function HBError(){
+  function HBError() {
     this.code = ErrorCodes.Empty;
     this.params = null;
   }
 
   HBError.prototype = {
-    toString: function(){
+    toString: function () {
       var f = currentLanguage.errorsTextMap[this.code];
-      if (!f)
-        return null;
-      if (!this.params)
-        return f();
+      if (!f) return null;
+      if (!this.params) return f();
       return f(...this.params);
-    }
+    },
   };
 
-  function createError(code, ...params){
+  function createError(code, ...params) {
     var e = new HBError();
     e.code = code;
     e.params = params;
     return e;
   }
 
-  (()=>{
+  (() => {
     //mc.ts (init webrtc) contents:
     var b = new RTCPeerConnection({ iceServers: [] });
     try {
@@ -450,14 +524,7 @@ function abcHaxballAPI(window, config){
     }
   })();
 
-
-
-
   // -- start of global Haxball classes --
-
-
-
-
 
   function hc() {}
   hc.b = !0;
@@ -481,7 +548,12 @@ function abcHaxballAPI(window, config){
   Date.prototype.f = Date;
   Date.b = "Date";
   null == ArrayBuffer.prototype.slice && (ArrayBuffer.prototype.slice = hc.Is);
-  var oc = Boolean, z = Number, sc = {}, Pb = {}, tc = {}, uc = {};
+  var oc = Boolean,
+    z = Number,
+    sc = {},
+    Pb = {},
+    tc = {},
+    uc = {};
   function bc() {}
   bc.b = !0;
   bc.prototype = { f: bc };
@@ -491,11 +563,11 @@ function abcHaxballAPI(window, config){
   Bb.b = !0;
   Bb.prototype = { f: Bb };
   function Kb(a) {
-    this.Id = a
+    this.Id = a;
   }
   Kb.b = !0;
   Kb.prototype = {
-    f: Kb
+    f: Kb,
   };
   function q(a) {
     this.Ta = a;
@@ -528,7 +600,7 @@ function abcHaxballAPI(window, config){
   };
   function Ta() {}
   Ta.b = !0;
-  function ya() {}// Moved this out for now... This process might have broken the app, because ya.zc values will get confused on multiple room joins. However, it seems to work correctly for now.
+  function ya() {} // Moved this out for now... This process might have broken the app, because ya.zc values will get confused on multiple room joins. However, it seems to work correctly for now.
   ya.b = !0;
   ya.zc = 0;
   function cc() {}
@@ -551,7 +623,7 @@ function abcHaxballAPI(window, config){
     if ("typ" != a[6]) throw new q(null);
     return { Jr: a[7], Xo: a[4] };
   };
-  
+
   function dc() {
     this.hash = 0;
   }
@@ -773,8 +845,7 @@ function abcHaxballAPI(window, config){
     this.kb = [null, new ka(), new ka()];
     this.kb[1].fb.push(p.fa.R);
     this.kb[2].fb.push(p.xa.R);
-    if (config.fixNames)
-      this.getPlayer = this.na;
+    if (config.fixNames) this.getPlayer = this.na;
   }
 
   //////////////////////////////////////////////////////////
@@ -794,7 +865,8 @@ function abcHaxballAPI(window, config){
   U.Qc = function (a, b) {
     return a.length <= b ? a : D.substr(a, 0, b);
   };
-  U.Zr = function (a) { // calculating hash for conn
+  U.Zr = function (a) {
+    // calculating hash for conn
     for (var b = "", c = 0, d = a.byteLength; c < d; ) b += J.Vg(a[c++], 2);
     return b;
   };
@@ -913,7 +985,7 @@ function abcHaxballAPI(window, config){
   };
   r.G = function (a, b) {
     if (r.pn(a, b)) return a;
-    throw new new q(createError(ErrorCodes.ObjectCastError, a, b)); // "Cannot cast " + K.ye(a) + " to " + K.ye(b)
+    throw new new q(createError(ErrorCodes.ObjectCastError, a, b))(); // "Cannot cast " + K.ye(a) + " to " + K.ye(b)
   };
   r.wj = function (a) {
     a = r.sn.call(a).slice(8, -1);
@@ -968,11 +1040,7 @@ function abcHaxballAPI(window, config){
   p.Ia.pg = p.Ia;
   p.fa.pg = p.xa;
   p.xa.pg = p.fa;
-  p.byId = [
-    p.Ia,
-    p.fa,
-    p.xa
-  ];
+  p.byId = [p.Ia, p.fa, p.xa];
 
   H.b = !0;
   H.prototype = { f: H };
@@ -1020,7 +1088,7 @@ function abcHaxballAPI(window, config){
     },
     f: B,
   };
-  
+
   E.b = !0;
   E.mn = 0.17435839227423353;
   E.ln = 5.934119456780721;
@@ -1248,7 +1316,8 @@ function abcHaxballAPI(window, config){
           (c = e - c),
           (f.x = a.x + d * c),
           (f.y = a.y + b * c),
-          (pObj._CDD_ && pObj._CDD_(this.v, this.playerId, oldA.v, oldA.playerId)));
+          pObj._CDD_ &&
+            pObj._CDD_(this.v, this.playerId, oldA.v, oldA.playerId));
       }
     },
     Qn: function (a, id1, id2, pObj) {
@@ -1299,7 +1368,7 @@ function abcHaxballAPI(window, config){
           (e = a = this.D),
           (a.x = e.x - b * d),
           (a.y = e.y - c * d),
-          (pObj._CDS_ && pObj._CDS_(id1, this.playerId, id2-1)))); // discId, discPlayerId, segmentId
+          pObj._CDS_ && pObj._CDS_(id1, this.playerId, id2 - 1))); // discId, discPlayerId, segmentId
     },
     sc: function () {
       var a = ya.zc,
@@ -1511,8 +1580,7 @@ function abcHaxballAPI(window, config){
     a.yc = b.yc;
     a.Sc = b.Sc;
     a.H = null == b.H ? null : b.H.sc();
-    if (a.H)
-      a.H.playerId = a.V;
+    if (a.H) a.H.playerId = a.V;
     a.ea = b.ea;
   };
   ea.prototype = {
@@ -1551,8 +1619,7 @@ function abcHaxballAPI(window, config){
       this.ea = 1 == c ? p.fa : 2 == c ? p.xa : p.Ia;
       c = a.ni();
       this.H = 0 > c ? null : b[c];
-      if (this.H)
-        this.H.playerId = this.V;   // c = discId -> disc[discId].playerId = playerId
+      if (this.H) this.H.playerId = this.V; // c = discId -> disc[discId].playerId = playerId
     },
     hs: function () {
       var a = ya.zc,
@@ -1622,7 +1689,8 @@ function abcHaxballAPI(window, config){
         c = this.F[d];
         d += 1;
         for (e = this.F.length; d < e; )
-          (f = this.F[d++]), 0 != (f.h & c.v) && 0 != (f.v & c.h) && c.Pn(f, pObj);
+          (f = this.F[d++]),
+            0 != (f.h & c.v) && 0 != (f.v & c.h) && c.Pn(f, pObj);
         if (0 != c.aa) {
           d = 0;
           for (e = this.qa; d < e.length; )
@@ -1644,12 +1712,14 @@ function abcHaxballAPI(window, config){
                   (f = f.wa),
                   (k.x = l.x - f.x * g),
                   (k.y = l.y - f.y * g),
-                  (pObj._CDP_ && pObj._CDP_(id, c.playerId, d-1))); // discId, discPlayerId, planeId
+                  pObj._CDP_ && pObj._CDP_(id, c.playerId, d - 1)); // discId, discPlayerId, planeId
               }
             }
           d = 0;
           for (e = this.U; d < e.length; )
-            (f = e[d]), ++d, 0 != (f.h & c.v) && 0 != (f.v & c.h) && c.Qn(f, id, d, pObj);
+            (f = e[d]),
+              ++d,
+              0 != (f.h & c.v) && 0 != (f.v & c.h) && c.Qn(f, id, d, pObj);
           d = 0;
           for (e = this.J; d < e.length; )
             if (
@@ -1707,8 +1777,17 @@ function abcHaxballAPI(window, config){
   };
 
   n.b = !0;
-  n.Vr = (config.backend.secure?"wss":"ws")+"://"+config.backend.hostnameWs+"/";
-  n.Ee = (config.proxy?.HttpUrl ? config.proxy.HttpUrl : ((config.backend.secure?"https":"http")+"://"+config.backend.hostname+"/rs/"));
+  n.Vr =
+    (config.backend.secure ? "wss" : "ws") +
+    "://" +
+    config.backend.hostnameWs +
+    "/";
+  n.Ee = config.proxy?.HttpUrl
+    ? config.proxy.HttpUrl
+    : (config.backend.secure ? "https" : "http") +
+      "://" +
+      config.backend.hostname +
+      "/rs/";
   n.Vf = [{ urls: "stun:stun.l.google.com:19302" }];
   //n.A = new Yb();
 
@@ -1761,9 +1840,8 @@ function abcHaxballAPI(window, config){
           ((g & 63) << 6) |
           (k & 63)),
         (b += 6);
-    else
-      throw new q(createError(ErrorCodes.UTF8CharacterDecodeError, b, c));
-      /*throw new q(
+    else throw new q(createError(ErrorCodes.UTF8CharacterDecodeError, b, c));
+    /*throw new q(
         "Cannot decode UTF8 character at offset " +
           b +
           ": charCode (" +
@@ -1775,7 +1853,8 @@ function abcHaxballAPI(window, config){
   F.prototype = {
     sb: function (a) {
       null == a && (a = this.o.byteLength - this.a);
-      if (this.a + a > this.o.byteLength) throw new q(createError(ReadTooMuchError)); // "Read too much"
+      if (this.a + a > this.o.byteLength)
+        throw new q(createError(ReadTooMuchError)); // "Read too much"
       var b = new Uint8Array(this.o.buffer, this.o.byteOffset + this.a, a);
       this.a += a;
       return b;
@@ -1843,8 +1922,8 @@ function abcHaxballAPI(window, config){
           (b += c.length),
           (d += String.fromCodePoint(c["char"]));
       if (b != a)
-        throw new q(createError(ErrorCodes.ReadWrongStringLengthError, (b - a)));
-        /*
+        throw new q(createError(ErrorCodes.ReadWrongStringLengthError, b - a));
+      /*
         throw new q(
           "Actual string length differs from the specified: " +
             (b - a) +
@@ -1914,20 +1993,23 @@ function abcHaxballAPI(window, config){
         b.setUint8(c + 4, ((a >> 6) & 63) | 128),
         b.setUint8(c + 5, (a & 63) | 128),
         (c += 6);
-    else
-      throw new q(createError(ErrorCodes.EncodeUTF8CharTooLargeError, a)); // "Cannot encode UTF8 character: charCode (" + a + ") is too large (>= 0x80000000)"
+    else throw new q(createError(ErrorCodes.EncodeUTF8CharTooLargeError, a)); // "Cannot encode UTF8 character: charCode (" + a + ") is too large (>= 0x80000000)"
     return c - d;
   };
   w.En = function (a) {
     if (0 > a)
-      throw new q(createError(ErrorCodes.CalculateLengthOfUTF8CharNegativeError, a)); // "Cannot calculate length of UTF8 character: charCode (" + a + ") is negative"
+      throw new q(
+        createError(ErrorCodes.CalculateLengthOfUTF8CharNegativeError, a)
+      ); // "Cannot calculate length of UTF8 character: charCode (" + a + ") is negative"
     if (128 > a) return 1;
     if (2048 > a) return 2;
     if (65536 > a) return 3;
     if (2097152 > a) return 4;
     if (67108864 > a) return 5;
     if (-2147483648 > a) return 6;
-    throw new q(createError(ErrorCodes.CalculateLengthOfUTF8CharTooLargeError, a)); // "Cannot calculate length of UTF8 character: charCode (" + a + ") is too large (>= 0x80000000)"
+    throw new q(
+      createError(ErrorCodes.CalculateLengthOfUTF8CharTooLargeError, a)
+    ); // "Cannot calculate length of UTF8 character: charCode (" + a + ") is too large (>= 0x80000000)"
   };
   w.Kf = function (a) {
     for (var b = 0, c = a.length, d = 0; d < c; ) b += w.En(D.bj(a, d++));
@@ -1966,7 +2048,8 @@ function abcHaxballAPI(window, config){
         this.Yq(2 * this.o.byteLength >= a ? 2 * this.o.byteLength : a);
     },
     Yq: function (a) {
-      if (1 > a) throw new q(createError(ErrorCodes.BufferResizeParameterTooSmallError)); // "Can't resize buffer to a capacity lower than 1"
+      if (1 > a)
+        throw new q(createError(ErrorCodes.BufferResizeParameterTooSmallError)); // "Can't resize buffer to a capacity lower than 1"
       if (this.o.byteLength < a) {
         var b = new Uint8Array(this.o.buffer);
         a = new ArrayBuffer(a);
@@ -2999,7 +3082,9 @@ function abcHaxballAPI(window, config){
               try {
                 h.wn(k, g), a.push(c(k));
               } catch (wc) {
-                throw new q(new Bb(createError(ErrorCodes.StadiumParseError, b, a.length))); // 'Error in "' + b + '" index: ' + a.length
+                throw new q(
+                  new Bb(createError(ErrorCodes.StadiumParseError, b, a.length))
+                ); // 'Error in "' + b + '" index: ' + a.length
               }
             }
       }
@@ -3589,7 +3674,8 @@ function abcHaxballAPI(window, config){
       else {
         a.ob = 0;
         var b = a.H;
-        null == b && ((b = new ca()), (b.playerId = a.V), (a.H = b), this.ta.F.push(b)); // assign playerId to disc
+        null == b &&
+          ((b = new ca()), (b.playerId = a.V), (a.H = b), this.ta.F.push(b)); // assign playerId to disc
         var c = this.S.ge;
         b.R = 0;
         b.Z = c.Z;
@@ -3692,12 +3778,11 @@ function abcHaxballAPI(window, config){
           for (a = 0; a < b.length; )
             (c = b[a]), ++a, null != c.H && (c.H.h = 39 | this.ae.cp);
           b = this.ta.F[0].D;
-          if (0 < b.x * b.x + b.y * b.y){
+          if (0 < b.x * b.x + b.y * b.y) {
             this.Bb = 1;
             null != this.Ma._KO_ && this.Ma._KO_();
           }
-        } 
-        else if (1 == this.Bb) {
+        } else if (1 == this.Bb) {
           this.Hc += 0.016666666666666666;
           for (a = 0; a < b.length; )
             (d = b[a]), ++a, null != d.H && (d.H.h = 39);
@@ -3707,11 +3792,12 @@ function abcHaxballAPI(window, config){
             a = 0;
             a < c &&
             ((d = a++), (d = this.S.Kn(b[O.dk[d]].a, O.Yk[d])), d == p.Ia);
+
           );
           d != p.Ia
-            ? (this.Bb = 2,
-              this.vc = 150,
-              this.ae = d,
+            ? ((this.Bb = 2),
+              (this.vc = 150),
+              (this.ae = d),
               d == p.fa ? this.Kb++ : this.Pb++,
               null != this.Ma.Ni && this.Ma.Ni(d.pg))
             : 0 < this.Da &&
@@ -3721,8 +3807,8 @@ function abcHaxballAPI(window, config){
         } else if (2 == this.Bb)
           this.vc--,
             0 >= this.vc &&
-              (0 < this.ib && (this.Pb >= this.ib || this.Kb >= this.ib) ||
-              0 < this.Da && this.Hc >= 60 * this.Da && this.Pb != this.Kb
+              ((0 < this.ib && (this.Pb >= this.ib || this.Kb >= this.ib)) ||
+              (0 < this.Da && this.Hc >= 60 * this.Da && this.Pb != this.Kb)
                 ? this.um()
                 : (this.Gk(), null != this.Ma.lq && this.Ma.lq()));
         else if (
@@ -3969,7 +4055,8 @@ function abcHaxballAPI(window, config){
       return b;
     },
     copy: function () {
-      function copyStadium(b){ // (b = new h()), b.Kr(a)
+      function copyStadium(b) {
+        // (b = new h()), b.Kr(a)
         var a = new h();
         a.Bh = b.Bh;
         a.w = b.w;
@@ -3983,7 +4070,8 @@ function abcHaxballAPI(window, config){
         a.$b = b.$b;
         a.qc = b.qc;
         a.kc = b.kc;
-        var o1 = a.ge, o2 = b.ge;
+        var o1 = a.ge,
+          o2 = b.ge;
         o1.m = o2.m;
         o1.aa = o2.aa;
         o1.Ca = o2.Ca;
@@ -4000,7 +4088,8 @@ function abcHaxballAPI(window, config){
         a.Ge = b.Ge;
         a.Lf = b.Lf;
         a.pf = b.pf;
-        a.J = b.J.map((o2, idx)=>{ // o1.ja(o2);
+        a.J = b.J.map((o2, idx) => {
+          // o1.ja(o2);
           var o1 = new B();
           o1.a.x = o2.a.x;
           o1.a.y = o2.a.y;
@@ -4010,14 +4099,16 @@ function abcHaxballAPI(window, config){
           o1.ud = idx;
           return o1;
         });
-        a.U = b.U.map((o2)=>{ // o1.ja(o2);
+        a.U = b.U.map((o2) => {
+          // o1.ja(o2);
           var o1 = new E();
-          var p0 = o2.W, p1 = o2.ca, v0 = -1, v1 = -1;
-          b.J.forEach((x, idx)=>{
-            if (x==p0)
-              v0 = idx;
-            else if (x==p1)
-              v1 = idx;
+          var p0 = o2.W,
+            p1 = o2.ca,
+            v0 = -1,
+            v1 = -1;
+          b.J.forEach((x, idx) => {
+            if (x == p0) v0 = idx;
+            else if (x == p1) v1 = idx;
           });
           o1.W = a.J[v0];
           o1.ca = a.J[v1];
@@ -4030,7 +4121,8 @@ function abcHaxballAPI(window, config){
           o1.v = o2.v;
           return o1;
         });
-        a.qa = b.qa.map((o2)=>{ // o1.ja(o2);
+        a.qa = b.qa.map((o2) => {
+          // o1.ja(o2);
           var o1 = new L();
           o1.wa.x = o2.wa.x;
           o1.wa.y = o2.wa.y;
@@ -4040,7 +4132,8 @@ function abcHaxballAPI(window, config){
           o1.v = o2.v;
           return o1;
         });
-        a.tc = b.tc.map((o2)=>{ // o1.ja(o2);
+        a.tc = b.tc.map((o2) => {
+          // o1.ja(o2);
           var o1 = new sb();
           o1.W.x = o2.W.x;
           o1.W.y = o2.W.y;
@@ -4049,7 +4142,8 @@ function abcHaxballAPI(window, config){
           o1.qe = o2.qe;
           return o1;
         });
-        a.F = b.F.map((o2)=>{ // o1.ja(o2);
+        a.F = b.F.map((o2) => {
+          // o1.ja(o2);
           var o1 = new ua();
           o1.a.x = o2.a.x;
           o1.a.y = o2.a.y;
@@ -4066,7 +4160,8 @@ function abcHaxballAPI(window, config){
           o1.v = o2.v;
           return o1;
         });
-        a.pb = b.pb.map((o2)=>{ // o1.ja(o2);
+        a.pb = b.pb.map((o2) => {
+          // o1.ja(o2);
           var o1 = new nb();
           o1.Yd = o2.Yd;
           o1.Zd = o2.Zd;
@@ -4076,16 +4171,16 @@ function abcHaxballAPI(window, config){
           o1.R = o2.R;
           return o1;
         });
-        a.Dd = b.Dd.map((o)=>(new H(o.x, o.y)));
-        a.md = b.md.map((o)=>(new H(o.x, o.y)));
+        a.Dd = b.Dd.map((o) => new H(o.x, o.y));
+        a.md = b.md.map((o) => new H(o.x, o.y));
         a.he();
         return a;
       }
-      function copyState(b, fa){
-        if (!b)
-          return null;
+      function copyState(b, fa) {
+        if (!b) return null;
         var a = new O();
-        a.ta.F = b.ta.F.map((o2)=>{ // o1.ja(o2);
+        a.ta.F = b.ta.F.map((o2) => {
+          // o1.ja(o2);
           var o1 = new ca();
           o1.a.x = o2.a.x;
           o1.a.y = o2.a.y;
@@ -4131,7 +4226,7 @@ function abcHaxballAPI(window, config){
       b.S = copyStadium(this.S); // this.S = h.ja(a);
       b.K = copyState(this.K, b); // b && ((this.K = new O()), this.K.ja(a, this));
       b.I = [];
-      this.I.forEach((p, i)=>{
+      this.I.forEach((p, i) => {
         var q = new ea();
         q.cb = p.cb;
         q.Jb = p.Jb;
@@ -4152,215 +4247,247 @@ function abcHaxballAPI(window, config){
         q.auth = p.auth;
         q.conn = p.conn;
         q.customClient = p.customClient;
-        if (b.K && p.H){
-          var id = p.H.playerId, idx = b.K.ta.F.findIndex(x=>x.playerId==id);
-          if (idx>-1)
-            q.H = b.K.ta.F[idx];
+        if (b.K && p.H) {
+          var id = p.H.playerId,
+            idx = b.K.ta.F.findIndex((x) => x.playerId == id);
+          if (idx > -1) q.H = b.K.ta.F[idx];
         }
         b.I[i] = q;
       });
-      this.kb.forEach((obj1, i)=>{ // this.kb[1].ja(a); this.kb[2].ja(a);
-        if (!obj1)
-          b.kb[i] = null;
-        else{
+      this.kb.forEach((obj1, i) => {
+        // this.kb[1].ja(a); this.kb[2].ja(a);
+        if (!obj1) b.kb[i] = null;
+        else {
           var obj2 = b.kb[i];
           obj2.hd = obj1.hd;
           obj2.ed = obj1.ed;
           obj2.fb = [];
-          obj1.fb.forEach((fb1)=>{
+          obj1.fb.forEach((fb1) => {
             obj2.fb.push(fb1);
           });
         }
       });
       return b;
     },
-    exportStadium: function(){
-      if (!this.K)
-        return;
-      var { S, ta } = this.K, d = new E(), k = new ua(), bgObj = {};
-      var rsp = S.Dd.map((a)=>([a.x, a.y])), bsp = S.md.map((a)=>([a.x, a.y])), j = ta.pb.map(h.ap);
-      h.ka(bgObj, "type", ((S.ld==1) ? "grass" : ((S.ld==2) ? "hockey" : "none")), "none");
+    exportStadium: function () {
+      if (!this.K) return;
+      var { S, ta } = this.K,
+        d = new E(),
+        k = new ua(),
+        bgObj = {};
+      var rsp = S.Dd.map((a) => [a.x, a.y]),
+        bsp = S.md.map((a) => [a.x, a.y]),
+        j = ta.pb.map(h.ap);
+      h.ka(
+        bgObj,
+        "type",
+        S.ld == 1 ? "grass" : S.ld == 2 ? "hockey" : "none",
+        "none"
+      );
       h.ka(bgObj, "width", S.Td, 0);
       h.ka(bgObj, "height", S.Sd, 0);
       h.ka(bgObj, "kickOffRadius", S.kd, 0);
       h.ka(bgObj, "cornerRadius", S.Uc, 0);
       h.qg(bgObj, S.jd, 7441498);
-      (S.ld==2) && h.ka(bgObj, "goalLine", S.Fe, 0);
+      S.ld == 2 && h.ka(bgObj, "goalLine", S.Fe, 0);
       var exp = {
-        "name": S.w,
-        "width": S.$b,
-        "height": S.qc,
-        "vertexes": ta.J.map((x, i)=>{var y = h.Tr(x);y.ud=i;return y;}),
-        "segments": ta.U.map((x)=>{return h._fr_(this, x, d);}),
-        "planes": ta.qa.map(h.gq),
-        "goals": S.tc.map(h.Jo),
-        "discs": ta.F.map((x)=>{return h.mo(x, k);}),
-        "bg": bgObj,
-        "playerPhysics": h.jq(S.ge),
-        "ballPhysics": "disc0"
+        name: S.w,
+        width: S.$b,
+        height: S.qc,
+        vertexes: ta.J.map((x, i) => {
+          var y = h.Tr(x);
+          y.ud = i;
+          return y;
+        }),
+        segments: ta.U.map((x) => {
+          return h._fr_(this, x, d);
+        }),
+        planes: ta.qa.map(h.gq),
+        goals: S.tc.map(h.Jo),
+        discs: ta.F.map((x) => {
+          return h.mo(x, k);
+        }),
+        bg: bgObj,
+        playerPhysics: h.jq(S.ge),
+        ballPhysics: "disc0",
       };
       h.ka(exp, "maxViewWidth", S.Ye, 0);
       h.ka(exp, "cameraFollow", 1 == S.Ge ? "player" : "", "");
       h.ka(exp, "spawnDistance", S.kc, 200);
-      (j.length>0) && (exp["joints"] = ta.pb.map(h.ap));
-      (rsp.length>0) && (exp["redSpawnPoints"] = rsp);
-      (bsp.length>0) && (exp["blueSpawnPoints"] = bsp);
+      j.length > 0 && (exp["joints"] = ta.pb.map(h.ap));
+      rsp.length > 0 && (exp["redSpawnPoints"] = rsp);
+      bsp.length > 0 && (exp["blueSpawnPoints"] = bsp);
       h.ka(exp, "kickOffReset", S.pf ? "full" : "partial", "partial");
-      (!S.Lf) && (exp["canBeStored"] = false);
+      !S.Lf && (exp["canBeStored"] = false);
       return exp;
     },
     f: fa,
 
-
     // ------------------ Custom functions section ------------------
-    // CAUTION: These functions should NOT be used in the original 
+    // CAUTION: These functions should NOT be used in the original
     // Haxball client, otherwise they will cause desynchronization.
     // Example usage can be found in the implementation of sandbox mode.
 
-    createVertex: function(data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    createVertex: function (data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       return h._np_(data);
     },
 
-    createSegment: function(data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    createSegment: function (data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var segment = h._mp_(data, this.K.ta.J);
       segment.he();
       return segment;
     },
 
-    createSegmentFromObj: function(data) { // data: { v0: vertexObj, v1: vertexObj, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    createSegmentFromObj: function (data) {
+      // data: { v0: vertexObj, v1: vertexObj, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var segment = h.__mp__(data, this.K.ta.J);
       segment.he();
       return segment;
     },
 
-    createGoal: function(data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    createGoal: function (data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       return h.ip(data);
     },
 
-    createPlane: function(data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    createPlane: function (data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       return h._kp_(data);
     },
 
-    createDisc: function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    createDisc: function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       return h._Mk_(data, new ua()).rp();
     },
 
-    createJoint: function(data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    createJoint: function (data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       return h._jp_(data, this.K.ta.F);
     },
 
-    createJointFromObj: function(data) { // data: { d0: discObj, d1: discObj, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    createJointFromObj: function (data) {
+      // data: { d0: discObj, d1: discObj, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       return h.__jp__(data, this.K.ta.F);
     },
 
-    addVertex: function(data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    addVertex: function (data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       this.K.ta.J.push(this.createVertex(data));
     },
 
-    addSegment: function(data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    addSegment: function (data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       this.K.ta.U.push(this.createSegment(data));
     },
 
-    addGoal: function(data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    addGoal: function (data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       this.K.S.tc.push(this.createGoal(data));
     },
 
-    addPlane: function(data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    addPlane: function (data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       this.K.ta.qa.push(this.createPlane(data));
     },
 
-    addDisc: function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    addDisc: function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       var disc = this.createDisc(data);
       //find the index to add this disc (it should be right before player discs start)
-      var idx = this.K.ta.F.findIndex((x)=>x.playerId!=null);
-      if (idx<0)
-        idx = this.K.ta.F.length;
+      var idx = this.K.ta.F.findIndex((x) => x.playerId != null);
+      if (idx < 0) idx = this.K.ta.F.length;
       // add the disc at that index
       this.K.ta.F.splice(idx, 0, disc);
       // shift the disc indices by 1 in all joints of all discs that come after the added disc
       var joints = this.K.ta.pb;
-      for (var idx2=this.K.ta.F.length-2;idx2>=idx;idx2--){
-        joints.forEach((joint)=>{
-          if (joint.Yd==idx2)
-            joint.Yd++;
-          if (joint.Zd==idx2)
-            joint.Zd++;
+      for (var idx2 = this.K.ta.F.length - 2; idx2 >= idx; idx2--) {
+        joints.forEach((joint) => {
+          if (joint.Yd == idx2) joint.Yd++;
+          if (joint.Zd == idx2) joint.Zd++;
         });
       }
     },
 
-    addJoint: function(data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    addJoint: function (data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       this.K.ta.pb.push(this.createJoint(data));
     },
 
-    addSpawnPoint: function(data) { // data: { x: number, y: number, team: ("red" || "blue") }
+    addSpawnPoint: function (data) {
+      // data: { x: number, y: number, team: ("red" || "blue") }
       var arr;
-      if (data.team=="red")
-        arr = this.K.S.Dd;
-      else if (data.team=="blue")
-        arr = this.K.S.md;
-      if (!arr)
-        return;
+      if (data.team == "red") arr = this.K.S.Dd;
+      else if (data.team == "blue") arr = this.K.S.md;
+      if (!arr) return;
       arr.push(new H(data.x, data.y));
     },
 
-    addPlayer: function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, id: integer, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
-      var { team, /* pos, radius, speed, gravity, invMass, damping, bCoef, cMask, cGroup, */ id, name, avatar, flag } = data;
-      var teamObj = (team=="spec") ? p.Ia : (((team=="red") ? p.fa : ((team=="blue") ? p.xa : null)));
-      if (!teamObj)
-        return;
+    addPlayer: function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, id: integer, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
+      var {
+        team,
+        /* pos, radius, speed, gravity, invMass, damping, bCoef, cMask, cGroup, */ id,
+        name,
+        avatar,
+        flag,
+      } = data;
+      var teamObj =
+        team == "spec"
+          ? p.Ia
+          : team == "red"
+          ? p.fa
+          : team == "blue"
+          ? p.xa
+          : null;
+      if (!teamObj) return;
       var b = oa.la(id, name, flag, avatar, "fakeConn", "fakeAuth");
       b.P = 0;
       b.apply(this);
-      if (team=="spec")
-        return;
+      if (team == "spec") return;
       b = S.la(id, teamObj);
       b.P = 0;
       b.apply(this);
       this.updateDiscObj(this.na(id).H, data);
     },
 
-    findVertexIndicesOfSegmentObj: function(segment){
-      var p0 = segment.W, p1 = segment.ca, v0 = -1, v1 = -1;
-      this.K.ta.J.forEach((x, idx)=>{
-        if (x==p0)
-          v0 = idx;
-        else if (x==p1)
-          v1 = idx;
+    findVertexIndicesOfSegmentObj: function (segment) {
+      var p0 = segment.W,
+        p1 = segment.ca,
+        v0 = -1,
+        v1 = -1;
+      this.K.ta.J.forEach((x, idx) => {
+        if (x == p0) v0 = idx;
+        else if (x == p1) v1 = idx;
       });
       return [v0, v1];
     },
 
-    findVertexIndicesOfSegment: function(segmentIndex){
+    findVertexIndicesOfSegment: function (segmentIndex) {
       return this.findVertexIndicesOfSegmentObj(this.K.ta.U[segmentIndex]);
     },
 
-    updateVertex: function(idx, data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    updateVertex: function (idx, data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var vertex = this.K.ta.J[idx];
-      if (!vertex)
-        return;
+      if (!vertex) return;
       var v = h._np_(data);
-      if (data.hasOwnProperty("x"))
-        vertex.a.x = v.a.x;
-      if (data.hasOwnProperty("y"))
-        vertex.a.y = v.a.y;
-      if (data.hasOwnProperty("bCoef"))
-        vertex.m = v.m;
-      if (data.hasOwnProperty("cMask"))
-        vertex.h = v.h;
-      if (data.hasOwnProperty("cGroup"))
-        vertex.v = v.v;
+      if (data.hasOwnProperty("x")) vertex.a.x = v.a.x;
+      if (data.hasOwnProperty("y")) vertex.a.y = v.a.y;
+      if (data.hasOwnProperty("bCoef")) vertex.m = v.m;
+      if (data.hasOwnProperty("cMask")) vertex.h = v.h;
+      if (data.hasOwnProperty("cGroup")) vertex.v = v.v;
       // update all segments that use this vertex
-      this.K.ta.U.forEach((segment)=>{
-        if (segment.ca==vertex || segment.W==vertex)
-          segment.he();
+      this.K.ta.U.forEach((segment) => {
+        if (segment.ca == vertex || segment.W == vertex) segment.he();
       });
     },
 
-    updateSegment: function(idx, data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    updateSegment: function (idx, data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var segment = this.K.ta.U[idx];
-      if (!segment)
-        return;
+      if (!segment) return;
       var s = h._mp_(data, this.K.ta.J); // using "curve" causes s.Oc() which changes s.W, s.ca, s.Cc and s.vb.
       if (data.hasOwnProperty("v0") || data.hasOwnProperty("curve"))
         segment.W = s.W;
@@ -4370,234 +4497,189 @@ function abcHaxballAPI(window, config){
         segment.Cc = s.Cc;
       if (data.hasOwnProperty("curveF") || data.hasOwnProperty("curve"))
         segment.vb = s.vb;
-      if (data.hasOwnProperty("vis"))
-        segment.Za = s.Za;
-      if (data.hasOwnProperty("color"))
-        segment.R = s.R;
-      if (data.hasOwnProperty("bCoef"))
-        segment.m = s.m;
-      if (data.hasOwnProperty("cMask"))
-        segment.h = s.h;
-      if (data.hasOwnProperty("cGroup"))
-        segment.v = s.v;
+      if (data.hasOwnProperty("vis")) segment.Za = s.Za;
+      if (data.hasOwnProperty("color")) segment.R = s.R;
+      if (data.hasOwnProperty("bCoef")) segment.m = s.m;
+      if (data.hasOwnProperty("cMask")) segment.h = s.h;
+      if (data.hasOwnProperty("cGroup")) segment.v = s.v;
       segment.he();
     },
 
-    updateGoal: function(idx, data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    updateGoal: function (idx, data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       var goal = this.K.S.tc[idx];
-      if (!goal)
-        return;
+      if (!goal) return;
       var g = h.ip(data);
-      if (data.hasOwnProperty("p0"))
-        goal.W = g.W;
-      if (data.hasOwnProperty("p1"))
-        goal.ca = g.ca;
-      if (data.hasOwnProperty("team"))
-        goal.qe = g.qe;
+      if (data.hasOwnProperty("p0")) goal.W = g.W;
+      if (data.hasOwnProperty("p1")) goal.ca = g.ca;
+      if (data.hasOwnProperty("team")) goal.qe = g.qe;
     },
 
-    updatePlane: function(idx, data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    updatePlane: function (idx, data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var plane = this.K.ta.qa[idx];
-      if (!plane)
-        return;
+      if (!plane) return;
       var p = h._kp_(data);
-      if (data.hasOwnProperty("normal"))
-        plane.wa = p.wa;
-      if (data.hasOwnProperty("dist"))
-        plane.Ua = p.Ua;
-      if (data.hasOwnProperty("bCoef"))
-        plane.m = p.m;
-      if (data.hasOwnProperty("cMask"))
-        plane.h = p.h;
-      if (data.hasOwnProperty("cGroup"))
-        plane.v = p.v;
+      if (data.hasOwnProperty("normal")) plane.wa = p.wa;
+      if (data.hasOwnProperty("dist")) plane.Ua = p.Ua;
+      if (data.hasOwnProperty("bCoef")) plane.m = p.m;
+      if (data.hasOwnProperty("cMask")) plane.h = p.h;
+      if (data.hasOwnProperty("cGroup")) plane.v = p.v;
     },
 
-    updateDisc: function(idx, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    updateDisc: function (idx, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       this.updateDiscObj(this.K.ta.F[idx], data);
     },
 
-    updateDiscObj: function(disc, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
-      if (!disc)
-        return;
+    updateDiscObj: function (disc, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+      if (!disc) return;
       var d = h._Mk_(data, new ua());
-      if (data.hasOwnProperty("pos"))
-        disc.a = d.a;
-      if (data.hasOwnProperty("speed"))
-        disc.D = d.D;
-      if (data.hasOwnProperty("gravity"))
-        disc.oa = d.oa;
-      if (data.hasOwnProperty("radius"))
-        disc.Z = d.Z;
-      if (data.hasOwnProperty("invMass"))
-        disc.aa = d.aa;
-      if (data.hasOwnProperty("damping"))
-        disc.Ca = d.Ca;
-      if (data.hasOwnProperty("color"))
-        disc.R = d.R;
-      if (data.hasOwnProperty("bCoef"))
-        disc.m = d.m;
-      if (data.hasOwnProperty("cMask"))
-        disc.h = d.h;
-      if (data.hasOwnProperty("cGroup"))
-        disc.v = d.v;
+      if (data.hasOwnProperty("pos")) disc.a = d.a;
+      if (data.hasOwnProperty("speed")) disc.D = d.D;
+      if (data.hasOwnProperty("gravity")) disc.oa = d.oa;
+      if (data.hasOwnProperty("radius")) disc.Z = d.Z;
+      if (data.hasOwnProperty("invMass")) disc.aa = d.aa;
+      if (data.hasOwnProperty("damping")) disc.Ca = d.Ca;
+      if (data.hasOwnProperty("color")) disc.R = d.R;
+      if (data.hasOwnProperty("bCoef")) disc.m = d.m;
+      if (data.hasOwnProperty("cMask")) disc.h = d.h;
+      if (data.hasOwnProperty("cGroup")) disc.v = d.v;
     },
 
-    updateJoint: function(idx, data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    updateJoint: function (idx, data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       var joint = this.K.ta.pb[idx];
-      if (!joint)
-        return;
+      if (!joint) return;
       var j = h._jp_(data, this.K.ta.F);
-      if (data.hasOwnProperty("d0"))
-        joint.Yd = j.Yd;
-      if (data.hasOwnProperty("d1"))
-        joint.Zd = j.Zd;
-      if (data.hasOwnProperty("color"))
-        joint.R = j.R;
-      if (data.hasOwnProperty("strength"))
-        joint.ne = j.ne;
-      if (data.hasOwnProperty("length")){
+      if (data.hasOwnProperty("d0")) joint.Yd = j.Yd;
+      if (data.hasOwnProperty("d1")) joint.Zd = j.Zd;
+      if (data.hasOwnProperty("color")) joint.R = j.R;
+      if (data.hasOwnProperty("strength")) joint.ne = j.ne;
+      if (data.hasOwnProperty("length")) {
         joint.ec = j.ec;
         joint.Hb = j.Hb;
       }
     },
 
-    updateSpawnPoint: function(idx, team, data) { // data: { x: number, y: number, team: ("red" || "blue") }
+    updateSpawnPoint: function (idx, team, data) {
+      // data: { x: number, y: number, team: ("red" || "blue") }
       var arr1, arr2;
-      if (team=="red")
-        arr1 = this.K.S.Dd;
-      else if (team=="blue")
-        arr1 = this.K.S.md;
-      if (data.team=="red")
-        arr2 = this.K.S.Dd;
-      else if (data.team=="blue")
-        arr2 = this.K.S.md;
-      if (!arr1 || !arr2)
-        return;
+      if (team == "red") arr1 = this.K.S.Dd;
+      else if (team == "blue") arr1 = this.K.S.md;
+      if (data.team == "red") arr2 = this.K.S.Dd;
+      else if (data.team == "blue") arr2 = this.K.S.md;
+      if (!arr1 || !arr2) return;
       var obj;
-      if (arr1==arr2)
-        obj = arr1[idx];
-      else
-        obj = arr1.splice(idx, 1)[0];
-      if (!obj)
-        return;
-      if (data.hasOwnProperty("x"))
-        obj.x = data.x;
-      if (data.hasOwnProperty("y"))
-        obj.y = data.y;
-      if (arr1!=arr2)
-        arr2.push(obj);
+      if (arr1 == arr2) obj = arr1[idx];
+      else obj = arr1.splice(idx, 1)[0];
+      if (!obj) return;
+      if (data.hasOwnProperty("x")) obj.x = data.x;
+      if (data.hasOwnProperty("y")) obj.y = data.y;
+      if (arr1 != arr2) arr2.push(obj);
     },
 
-    updatePlayer: function(playerId, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
+    updatePlayer: function (playerId, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
       var playerObj = this.na(playerId);
-      if (!playerObj)
-        return;
+      if (!playerObj) return;
       var teamObj = null;
       if (data.hasOwnProperty("team"))
-        teamObj = (data.team=="spec") ? p.Ia : (((data.team=="red") ? p.fa : ((data.team=="blue") ? p.xa : null)));
-      if (data.hasOwnProperty("name"))
-        playerObj.w = data.name;
-      if (data.hasOwnProperty("flag"))
-        playerObj.Kd = data.flag;
-      if (data.hasOwnProperty("avatar"))
-        playerObj.Xb = data.avatar;
-      if (teamObj!=null){
+        teamObj =
+          data.team == "spec"
+            ? p.Ia
+            : data.team == "red"
+            ? p.fa
+            : data.team == "blue"
+            ? p.xa
+            : null;
+      if (data.hasOwnProperty("name")) playerObj.w = data.name;
+      if (data.hasOwnProperty("flag")) playerObj.Kd = data.flag;
+      if (data.hasOwnProperty("avatar")) playerObj.Xb = data.avatar;
+      if (teamObj != null) {
         var b = S.la(playerId, teamObj);
         b.P = 0;
         b.apply(this);
       }
-      if (playerObj.H!=null)
-        this.updateDiscObj(playerObj.H, data);
+      if (playerObj.H != null) this.updateDiscObj(playerObj.H, data);
     },
 
-    removeVertex: function(idx) {
+    removeVertex: function (idx) {
       // remove the vertex
       var vertex = this.K.ta.J.splice(idx, 1)[0];
-      if (!vertex)
-        return;
+      if (!vertex) return;
       // find all segment indices that use this vertex
-      var segments = this.K.ta.U, indices = [];
-      segments.forEach((segment, idx)=>{
-        if (segment.ca==vertex || segment.W==vertex)
-          indices.unshift(idx); // adds in reverse order
+      var segments = this.K.ta.U,
+        indices = [];
+      segments.forEach((segment, idx) => {
+        if (segment.ca == vertex || segment.W == vertex) indices.unshift(idx); // adds in reverse order
       });
       // remove all segments that use this vertex
-      indices.forEach((idx)=>segments.splice(idx, 1));
+      indices.forEach((idx) => segments.splice(idx, 1));
     },
 
-    removeSegment: function(idx) {
+    removeSegment: function (idx) {
       this.K.ta.U.splice(idx, 1);
     },
 
-    removeGoal: function(idx) {
+    removeGoal: function (idx) {
       this.K.S.tc.splice(idx, 1);
     },
 
-    removePlane: function(idx) {
+    removePlane: function (idx) {
       this.K.ta.qa.splice(idx, 1);
     },
 
-    removeDisc: function(idx) {
+    removeDisc: function (idx) {
       // remove the disc
       this.K.ta.F.splice(idx, 1);
       // find all joint indices that use this disc
-      var joints = this.K.ta.pb, indices = [];
-      joints.forEach((joint, idx2)=>{
-        if (joint.Yd==idx || joint.Zd==idx)
-          indices.unshift(idx2); // adds in reverse order
+      var joints = this.K.ta.pb,
+        indices = [];
+      joints.forEach((joint, idx2) => {
+        if (joint.Yd == idx || joint.Zd == idx) indices.unshift(idx2); // adds in reverse order
       });
       // remove all joints that use this disc
-      indices.forEach((idx2)=>joints.splice(idx2, 1));
+      indices.forEach((idx2) => joints.splice(idx2, 1));
       // shift the disc indices by 1 in all joints of all discs that come after the removed disc
-      for (var idx2=idx+1;idx2<=this.K.ta.F.length;idx2++){
-        joints.forEach((joint)=>{
-          if (joint.Yd==idx2)
-            joint.Yd--;
-          if (joint.Zd==idx2)
-            joint.Zd--;
+      for (var idx2 = idx + 1; idx2 <= this.K.ta.F.length; idx2++) {
+        joints.forEach((joint) => {
+          if (joint.Yd == idx2) joint.Yd--;
+          if (joint.Zd == idx2) joint.Zd--;
         });
       }
     },
 
-    removeJoint: function(idx) {
+    removeJoint: function (idx) {
       this.K.ta.pb.splice(idx, 1);
     },
 
-    removeSpawnPoint: function(idx, team) {
+    removeSpawnPoint: function (idx, team) {
       var arr;
-      if (team=="red")
-        arr = this.K.S.Dd;
-      else if (team=="blue")
-        arr = this.K.S.md;
-      if (!arr)
-        return;
+      if (team == "red") arr = this.K.S.Dd;
+      else if (team == "blue") arr = this.K.S.md;
+      if (!arr) return;
       arr.splice(idx, 1);
     },
 
-    removePlayer: function(playerId) {
+    removePlayer: function (playerId) {
       var b = Y.la(playerId, null, true);
       b.P = 0;
       b.apply(this);
     },
 
-    updateStadiumPlayerPhysics: function(data) { // data: { radius: number, gravity: [x: number, y: number], invMass: number, bCoef: number, cGroup: array of string, damping: number, kickingDamping: number, acceleration: number, kickingAcceleration: number, kickStrength: number, kickback: number }
+    updateStadiumPlayerPhysics: function (data) {
+      // data: { radius: number, gravity: [x: number, y: number], invMass: number, bCoef: number, cGroup: array of string, damping: number, kickingDamping: number, acceleration: number, kickingAcceleration: number, kickStrength: number, kickback: number }
       var obj = this.K?.S.ge;
-      if (!obj)
-        return;
+      if (!obj) return;
       var d = h._Mk_(data, new ua());
-      if (data.hasOwnProperty("radius"))
-        obj.Z = d.Z;
-      if (data.hasOwnProperty("gravity"))
-        obj.oa = d.oa;
-      if (data.hasOwnProperty("invMass"))
-        obj.aa = d.aa;
-      if (data.hasOwnProperty("bCoef"))
-        obj.m = d.m;
-      if (data.hasOwnProperty("cGroup"))
-        obj.v = d.v;
-      if (data.hasOwnProperty("damping"))
-        obj.Ca = d.Ca;
+      if (data.hasOwnProperty("radius")) obj.Z = d.Z;
+      if (data.hasOwnProperty("gravity")) obj.oa = d.oa;
+      if (data.hasOwnProperty("invMass")) obj.aa = d.aa;
+      if (data.hasOwnProperty("bCoef")) obj.m = d.m;
+      if (data.hasOwnProperty("cGroup")) obj.v = d.v;
+      if (data.hasOwnProperty("damping")) obj.Ca = d.Ca;
       if (data.hasOwnProperty("kickingDamping"))
         obj.Ua = r.G(data.kickingDamping, z);
       if (data.hasOwnProperty("acceleration"))
@@ -4606,40 +4688,31 @@ function abcHaxballAPI(window, config){
         obj.Te = r.G(data.kickingAcceleration, z);
       if (data.hasOwnProperty("kickStrength"))
         obj.Re = r.G(data.kickStrength, z);
-      if (data.hasOwnProperty("kickback"))
-        obj.Se = r.G(data.kickback, z);
+      if (data.hasOwnProperty("kickback")) obj.Se = r.G(data.kickback, z);
     },
 
-    updateStadiumBg: function(data) { // data: { type: 0("none") || 1("grass") || 2("hockey"), width: number, height: number, kickOffRadius: number, cornerRadius: number, color: ("transparent" || string || [r: number, g: number, b: number]), goalLine: number }
+    updateStadiumBg: function (data) {
+      // data: { type: 0("none") || 1("grass") || 2("hockey"), width: number, height: number, kickOffRadius: number, cornerRadius: number, color: ("transparent" || string || [r: number, g: number, b: number]), goalLine: number }
       var obj = this.K?.S;
-      if (!obj)
-        return;
-      if (data.hasOwnProperty("type"))
-        obj.ld = r.G(data.type, Pb);
-      if (data.hasOwnProperty("width"))
-        obj.Td = r.G(data.width, z);
-      if (data.hasOwnProperty("height"))
-        obj.Sd = r.G(data.height, z);
+      if (!obj) return;
+      if (data.hasOwnProperty("type")) obj.ld = r.G(data.type, Pb);
+      if (data.hasOwnProperty("width")) obj.Td = r.G(data.width, z);
+      if (data.hasOwnProperty("height")) obj.Sd = r.G(data.height, z);
       if (data.hasOwnProperty("kickOffRadius"))
         obj.kd = r.G(data.kickOffRadius, z);
       if (data.hasOwnProperty("cornerRadius"))
         obj.Uc = r.G(data.cornerRadius, z);
-      if (data.hasOwnProperty("color"))
-        obj.jd = r.G(data.color, Pb);
-      if (data.hasOwnProperty("goalLine"))
-        obj.Fe = r.G(data.goalLine, z);
+      if (data.hasOwnProperty("color")) obj.jd = r.G(data.color, Pb);
+      if (data.hasOwnProperty("goalLine")) obj.Fe = r.G(data.goalLine, z);
     },
 
-    updateStadiumGeneral: function(data) { // data: { name: string, width: number, height: number, maxViewWidth: number, cameraFollow: 0("") || 1("player"), spawnDistance: number, kickOffReset: true("full") || false("partial"), canBeStored: boolean }
+    updateStadiumGeneral: function (data) {
+      // data: { name: string, width: number, height: number, maxViewWidth: number, cameraFollow: 0("") || 1("player"), spawnDistance: number, kickOffReset: true("full") || false("partial"), canBeStored: boolean }
       var obj = this.K?.S;
-      if (!obj)
-        return;
-      if (data.hasOwnProperty("name"))
-        obj.w = r.G(data.name, String);
-      if (data.hasOwnProperty("width"))
-        obj.$b = r.G(data.width, z);
-      if (data.hasOwnProperty("height"))
-        obj.qc = r.G(data.height, z);
+      if (!obj) return;
+      if (data.hasOwnProperty("name")) obj.w = r.G(data.name, String);
+      if (data.hasOwnProperty("width")) obj.$b = r.G(data.width, z);
+      if (data.hasOwnProperty("height")) obj.qc = r.G(data.height, z);
       if (data.hasOwnProperty("maxViewWidth"))
         obj.Ye = r.G(data.maxViewWidth, z);
       if (data.hasOwnProperty("cameraFollow"))
@@ -4651,7 +4724,6 @@ function abcHaxballAPI(window, config){
       if (data.hasOwnProperty("canBeStored"))
         obj.Lf = r.G(data.canBeStored, oc);
     },
-
   };
 
   ///////////////////////////////////////////////////////////////
@@ -4669,7 +4741,8 @@ function abcHaxballAPI(window, config){
   };
   m.Ha = function (a) {
     a.on = m.yf;
-    if (null == a.za) throw new q(createError(ErrorCodes.MissingActionConfigError)); // "Class doesn't have a config"
+    if (null == a.za)
+      throw new q(createError(ErrorCodes.MissingActionConfigError)); // "Class doesn't have a config"
     a.prototype.zf = a.za;
     m.Qm.set(m.yf, a);
     m.yf++;
@@ -4703,12 +4776,13 @@ function abcHaxballAPI(window, config){
     f: m,
   };
   Object.defineProperty(m.prototype, "eventType", {
-    get(){
+    get() {
       return null;
-    }
+    },
   });
 
-  function Ua() { // update sync value: no callback required...
+  function Ua() {
+    // update sync value: no callback required...
     this.da = 0;
     this.Rg = null;
   }
@@ -4754,9 +4828,9 @@ function abcHaxballAPI(window, config){
     f: ta,
   });
   Object.defineProperty(ta.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetPlayerSync;
-    }
+    },
   });
 
   function rb() {
@@ -4790,7 +4864,10 @@ function abcHaxballAPI(window, config){
     },
     va: function (a) {
       this.Tc = a.ic();
-      if (1e3 < this.Tc.length) throw new q(createError(ErrorCodes.AnnouncementActionMessageTooLongError)); // "message too long"
+      if (1e3 < this.Tc.length)
+        throw new q(
+          createError(ErrorCodes.AnnouncementActionMessageTooLongError)
+        ); // "message too long"
       this.color = a.M();
       this.style = a.B();
       this.fn = a.B();
@@ -4798,11 +4875,11 @@ function abcHaxballAPI(window, config){
     f: rb,
   });
   Object.defineProperty(rb.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SendAnnouncement;
-    }
+    },
   });
-  
+
   function Qa() {
     this.da = 0;
     this.P = 0;
@@ -4826,8 +4903,13 @@ function abcHaxballAPI(window, config){
         var t;
         0 != c &&
           (f == e
-            ? 2 > c || (a.Mf(b, d[0], p.fa), a.Mf(b, d[1], p.xa), (a._AT_ && a._AT_(d[0].V, p.fa.$, d[1].V, p.xa.$, this.P)))
-            : (t = f > e ? p.fa : p.xa, a.Mf(b, d[0], t), (a._AT_ && a._AT_(d[0].V, t.$, null, null, this.P))));
+            ? 2 > c ||
+              (a.Mf(b, d[0], p.fa),
+              a.Mf(b, d[1], p.xa),
+              a._AT_ && a._AT_(d[0].V, p.fa.$, d[1].V, p.xa.$, this.P))
+            : ((t = f > e ? p.fa : p.xa),
+              a.Mf(b, d[0], t),
+              a._AT_ && a._AT_(d[0].V, t.$, null, null, this.P)));
       }
     },
     ua: function () {},
@@ -4835,9 +4917,9 @@ function abcHaxballAPI(window, config){
     f: Qa,
   });
   Object.defineProperty(Qa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.AutoTeams;
-    }
+    },
   });
 
   function da() {
@@ -4856,15 +4938,17 @@ function abcHaxballAPI(window, config){
   da.ma = m;
   da.prototype = C(m.prototype, {
     apply: function (a) {
-      if (a.Lb(this.P, 2) && null == a.K){
+      if (a.Lb(this.P, 2) && null == a.K) {
         switch (this.rj) {
           case 0:
             var b = this.newValue;
             a.ib = 0 > b ? 0 : 99 < b ? 99 : b;
-            (a._SLC_ && a._SLC_(this.newValue, this.P));
+            a._SLC_ && a._SLC_(this.newValue, this.P);
             break;
           case 1:
-            (b = this.newValue), (a.Da = 0 > b ? 0 : 99 < b ? 99 : b), (a._TLC_ && a._TLC_(this.newValue, this.P));
+            (b = this.newValue),
+              (a.Da = 0 > b ? 0 : 99 < b ? 99 : b),
+              a._TLC_ && a._TLC_(this.newValue, this.P);
         }
       }
     },
@@ -4879,11 +4963,13 @@ function abcHaxballAPI(window, config){
     f: da,
   });
   Object.defineProperty(da.prototype, "eventType", {
-    get(){
-      return (this.rj==0) ? OperationType.SetScoreLimit : OperationType.SetTimeLimit;
-    }
+    get() {
+      return this.rj == 0
+        ? OperationType.SetScoreLimit
+        : OperationType.SetTimeLimit;
+    },
   });
-  
+
   function sa() {
     this.da = 0;
     this.Md = 0;
@@ -4906,7 +4992,7 @@ function abcHaxballAPI(window, config){
         null != c &&
           0 != c.V &&
           c.cb != this.Xg &&
-          ((c.cb = this.Xg), (null != a.ii && a.ii(b, c)));
+          ((c.cb = this.Xg), null != a.ii && a.ii(b, c));
       }
     },
     ua: function (a) {
@@ -4920,11 +5006,11 @@ function abcHaxballAPI(window, config){
     f: sa,
   });
   Object.defineProperty(sa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetPlayerAdmin;
-    }
+    },
   });
-  
+
   function ra() {
     this.da = 0;
     this.Zb = null;
@@ -4940,7 +5026,7 @@ function abcHaxballAPI(window, config){
   ra.prototype = C(m.prototype, {
     apply: function (a) {
       var b = a.na(this.P);
-      null != b && (b.Xb = this.Zb, (a._PAC_ && a._PAC_(this.P, this.Zb)));
+      null != b && ((b.Xb = this.Zb), a._PAC_ && a._PAC_(this.P, this.Zb));
     },
     ua: function (a) {
       a.Db(this.Zb);
@@ -4952,11 +5038,11 @@ function abcHaxballAPI(window, config){
     f: ra,
   });
   Object.defineProperty(ra.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetAvatar;
-    }
+    },
   });
-  
+
   function S() {
     this.da = 0;
     this.Md = 0;
@@ -4977,8 +5063,9 @@ function abcHaxballAPI(window, config){
       if (null != b) {
         var c = a.na(this.P),
           d = a.Lb(this.P, 1);
-        (d = d || b == c && !a.Pc && null == a.K) && (b.ea != this.jj) && (a.Mf(c, b, this.jj),
-        a._PTC_ && a._PTC_(this.Md, this.jj.$, this.P)); // id, teamId, byId
+        (d = d || (b == c && !a.Pc && null == a.K)) &&
+          b.ea != this.jj &&
+          (a.Mf(c, b, this.jj), a._PTC_ && a._PTC_(this.Md, this.jj.$, this.P)); // id, teamId, byId
       }
     },
     ua: function (a) {
@@ -4993,9 +5080,9 @@ function abcHaxballAPI(window, config){
     f: S,
   });
   Object.defineProperty(S.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetPlayerTeam;
-    }
+    },
   });
 
   function qa() {
@@ -5014,7 +5101,7 @@ function abcHaxballAPI(window, config){
     apply: function (a) {
       if (a.Lb(this.P, 8)) {
         var b = a.na(this.P);
-        null == a.K && ((a.S = this.Pd), (null != a.Ii && a.Ii(b, this.Pd)));
+        null == a.K && ((a.S = this.Pd), null != a.Ii && a.Ii(b, this.Pd));
       }
     },
     ua: function (a) {
@@ -5031,11 +5118,11 @@ function abcHaxballAPI(window, config){
     f: qa,
   });
   Object.defineProperty(qa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetStadium;
-    }
+    },
   });
-    
+
   function Pa() {
     this.da = 0;
     this.ea = null;
@@ -5046,7 +5133,10 @@ function abcHaxballAPI(window, config){
   Pa.ma = m;
   Pa.prototype = C(m.prototype, {
     apply: function (a) {
-      a.Lb(this.P, 2) && this.ea != p.Ia && (a.kb[this.ea.$] = this.Sg, (a._TCC_ && a._TCC_(this.ea.$, this.Sg, this.P)));
+      a.Lb(this.P, 2) &&
+        this.ea != p.Ia &&
+        ((a.kb[this.ea.$] = this.Sg),
+        a._TCC_ && a._TCC_(this.ea.$, this.Sg, this.P));
     },
     ua: function (a) {
       a.l(this.ea.$);
@@ -5061,9 +5151,9 @@ function abcHaxballAPI(window, config){
     f: Pa,
   });
   Object.defineProperty(Pa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetTeamColors;
-    }
+    },
   });
 
   function pa() {
@@ -5080,7 +5170,8 @@ function abcHaxballAPI(window, config){
   pa.ma = m;
   pa.prototype = C(m.prototype, {
     apply: function (a) {
-      a.Lb(this.P, 2) && (a.Pc = this.newValue, (a._TLC2_ && a._TLC2_(this.newValue, this.P)));
+      a.Lb(this.P, 2) &&
+        ((a.Pc = this.newValue), a._TLC2_ && a._TLC2_(this.newValue, this.P));
     },
     ua: function (a) {
       a.l(this.newValue ? 1 : 0);
@@ -5091,9 +5182,9 @@ function abcHaxballAPI(window, config){
     f: pa,
   });
   Object.defineProperty(pa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetTeamsLock;
-    }
+    },
   });
 
   function oa() {
@@ -5107,7 +5198,8 @@ function abcHaxballAPI(window, config){
     this.P = 0;
   }
   oa.b = !0;
-  oa.la = function (a, b, c, d, conn, auth) { // store player conn and auth
+  oa.la = function (a, b, c, d, conn, auth) {
+    // store player conn and auth
     var e = new oa();
     e.V = a;
     e.name = b;
@@ -5131,7 +5223,8 @@ function abcHaxballAPI(window, config){
         a.I.push(b);
         a = a.tl;
         null != a && a(b);
-        haxball?.room?._onPlayerObjectCreated && haxball.room._onPlayerObjectCreated(b);
+        haxball?.room?._onPlayerObjectCreated &&
+          haxball.room._onPlayerObjectCreated(b);
       }
     },
     ua: function (a) {
@@ -5149,18 +5242,18 @@ function abcHaxballAPI(window, config){
     f: oa,
   });
   Object.defineProperty(oa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.JoinRoom;
-    }
+    },
   });
-  
+
   function qb() {
     this.da = 0;
     this.Zb = "";
     this.ze = 0;
     this.P = 0;
   }
-  qb.la = function(a, b) {
+  qb.la = function (a, b) {
     var c = new qb();
     c.Zb = null != b ? U.Qc(b, 2) : null;
     c.ze = a;
@@ -5171,7 +5264,9 @@ function abcHaxballAPI(window, config){
   qb.prototype = C(m.prototype, {
     apply: function (a) {
       a = a.na(this.ze);
-      null != a && 0 == this.P && (a.Jd = this.Zb, (a._PHAC_ && a._PHAC_(this.ze, this.Zb)));
+      null != a &&
+        0 == this.P &&
+        ((a.Jd = this.Zb), a._PHAC_ && a._PHAC_(this.ze, this.Zb));
     },
     ua: function (a) {
       a.Db(this.Zb);
@@ -5185,11 +5280,11 @@ function abcHaxballAPI(window, config){
     f: qb,
   });
   Object.defineProperty(qb.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetHeadlessAvatar;
-    }
+    },
   });
-  
+
   function Oa() {
     this.da = 0;
     this.Bf = false;
@@ -5205,7 +5300,7 @@ function abcHaxballAPI(window, config){
           d = 120 == b.Oa,
           e = 0 < b.Oa;
         this.Bf ? (b.Oa = 120) : 120 == b.Oa && (b.Oa = 119);
-        d != this.Bf && (Cb.i(a.ml, c, this.Bf, e));
+        d != this.Bf && Cb.i(a.ml, c, this.Bf, e);
       }
     },
     ua: function (a) {
@@ -5217,11 +5312,11 @@ function abcHaxballAPI(window, config){
     f: Oa,
   });
   Object.defineProperty(Oa.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.PauseResumeGame;
-    }
+    },
   });
-  
+
   function Na() {
     this.da = 0;
     this.Tc = "";
@@ -5240,23 +5335,24 @@ function abcHaxballAPI(window, config){
     },
     apply: function (a) {
       var b = a.na(this.P);
-      null != b && (ia.i(a.rl, b, this.Tc));
+      null != b && ia.i(a.rl, b, this.Tc);
     },
     ua: function (a) {
       a.mc(U.Qc(this.Tc, 140));
     },
     va: function (a) {
       this.Tc = a.ic();
-      if (140 < this.Tc.length) throw new q(createError(ErrorCodes.ChatActionMessageTooLongError)); // "message too long"
+      if (140 < this.Tc.length)
+        throw new q(createError(ErrorCodes.ChatActionMessageTooLongError)); // "message too long"
     },
     f: Na,
   });
   Object.defineProperty(Na.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SendChat;
-    }
+    },
   });
-  
+
   function Ga() {
     this.da = 0;
     this.input = 0;
@@ -5283,11 +5379,11 @@ function abcHaxballAPI(window, config){
     f: Ga,
   });
   Object.defineProperty(Ga.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SendInput;
-    }
+    },
   });
-  
+
   function na() {
     this.da = 0;
     this.sj = 0;
@@ -5307,8 +5403,8 @@ function abcHaxballAPI(window, config){
   na.prototype = C(m.prototype, {
     apply: function (a) {
       var b = a.na(this.P);
-      if (null != b){
-        if (this.id != null){
+      if (null != b) {
+        if (this.id != null) {
           a._CCI_ && a._CCI_(b, this.id, this.mode);
           return;
         }
@@ -5317,40 +5413,40 @@ function abcHaxballAPI(window, config){
     },
     ua: function (a) {
       a.l(this.sj);
-      if (this.id!=null && this.mode!=null){
+      if (this.id != null && this.mode != null) {
         a.l(this.id);
         a.l(this.mode);
       }
     },
     va: function (a, replayMode) {
       this.sj = a.B();
-      if (!replayMode){
-        try{
+      if (!replayMode) {
+        try {
           this.id = a.B();
           this.mode = a.B();
-        }catch(ex){}
+        } catch (ex) {}
       }
     },
     f: na,
   });
   Object.defineProperty(na.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SendChatIndicator;
-    }
+    },
   });
-  
+
   function CustomEvent() {
     this.da = 0;
     this.type = 0;
     this.data = null;
     this.P = 0;
   }
-  CustomEvent.la = function(type, data){
+  CustomEvent.la = function (type, data) {
     var msg = new CustomEvent();
     msg.type = type;
     msg.data = data;
     return msg;
-  }
+  };
   CustomEvent.b = true;
   CustomEvent.ma = m;
   CustomEvent.prototype = C(m.prototype, {
@@ -5369,11 +5465,11 @@ function abcHaxballAPI(window, config){
     f: CustomEvent,
   });
   Object.defineProperty(CustomEvent.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.CustomEvent;
-    }
+    },
   });
-  
+
   function Y() {
     this.da = 0;
     this.V = 0;
@@ -5418,9 +5514,9 @@ function abcHaxballAPI(window, config){
     f: Y,
   });
   Object.defineProperty(Y.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.KickBanPlayer;
-    }
+    },
   });
 
   function pb() {
@@ -5429,21 +5525,20 @@ function abcHaxballAPI(window, config){
     this.Zm = true;
     this.P = 0;
   }
-  pb.la = function(a, b) {
-    for (var c = new pb, d = new Set, e = 0; e < a.length; )
-      d.add(a[e++]);
+  pb.la = function (a, b) {
+    for (var c = new pb(), d = new Set(), e = 0; e < a.length; ) d.add(a[e++]);
     a = [];
     for (var e = 0, d = d.values(), f = d.next(); !f.done; ) {
-      var h = f.value, f = d.next();
+      var h = f.value,
+        f = d.next();
       a.push(h);
       ++e;
-      if (e>=40)
-        break;
+      if (e >= 40) break;
     }
     c.Zg = a;
     c.Zm = b;
     return c;
-  }
+  };
   pb.b = !0;
   pb.ma = m;
   pb.prototype = C(m.prototype, {
@@ -5466,7 +5561,7 @@ function abcHaxballAPI(window, config){
         b = b.values();
         for (e = b.next(); !e.done; ) (f = e.value), (e = b.next()), d.push(f);
         a.I = this.Zm ? c.concat(d) : d.concat(c);
-        (a._RP_ && a._RP_(this.Zg, this.Zm)); // playerIdList, moveToTop
+        a._RP_ && a._RP_(this.Zg, this.Zm); // playerIdList, moveToTop
       }
     },
     ua: function (a) {
@@ -5483,11 +5578,11 @@ function abcHaxballAPI(window, config){
     f: pb,
   });
   Object.defineProperty(pb.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.ReorderPlayers;
-    }
+    },
   });
-  
+
   function ob() {
     this.da = 0;
     this.ze = 0;
@@ -5497,32 +5592,42 @@ function abcHaxballAPI(window, config){
     this.P = 0;
   }
   ob.b = !0;
-  ob._Kf_ = function(a, b, c) {
-    var d = new ob;
+  ob._Kf_ = function (a, b, c) {
+    var d = new ob();
     d.ze = a;
     d.Sm = b;
-    d.Ka = [c.x, c.y, c.xspeed, c.yspeed, c.xgravity, c.ygravity, c.radius, c.bCoeff, c.invMass, c.damping];
+    d.Ka = [
+      c.x,
+      c.y,
+      c.xspeed,
+      c.yspeed,
+      c.xgravity,
+      c.ygravity,
+      c.radius,
+      c.bCoeff,
+      c.invMass,
+      c.damping,
+    ];
     d.Rc = [c.color, c.cMask, c.cGroup];
     a = 0;
     for (b = d.Ka.length; a < b; ) {
       c = a++;
       var e = d.Ka[c];
-      null != e && (ob._Gf_[0] = e,
-      d.Ka[c] = ob._Gf_[0])
+      null != e && ((ob._Gf_[0] = e), (d.Ka[c] = ob._Gf_[0]));
     }
     a = 0;
     for (b = d.Rc.length; a < b; )
-      c = a++,
-      e = d.Rc[c],
-      null != e && (ob._Jf_[0] = e,
-      d.Rc[c] = ob._Jf_[0]);
-    return d
-  }
+      (c = a++),
+        (e = d.Rc[c]),
+        null != e && ((ob._Jf_[0] = e), (d.Rc[c] = ob._Jf_[0]));
+    return d;
+  };
   ob.ma = m;
   ob.prototype = C(m.prototype, {
     apply: function (a) {
       if (0 == this.P) {
-        var b = a.K, c = a;
+        var b = a.K,
+          c = a;
         if (null != b) {
           if (this.Sm) {
             a = a.na(this.ze);
@@ -5543,7 +5648,7 @@ function abcHaxballAPI(window, config){
             null != this.Rc[0] && (a.R = this.Rc[0]),
             null != this.Rc[1] && (a.h = this.Rc[1]),
             null != this.Rc[2] && (a.v = this.Rc[2]),
-            (c._SDP_ && c._SDP_(this.ze, this.Sm, this.Ka, this.Rc))); // id, type, data1, data2
+            c._SDP_ && c._SDP_(this.ze, this.Sm, this.Ka, this.Rc)); // id, type, data1, data2
         }
       }
     },
@@ -5587,11 +5692,11 @@ function abcHaxballAPI(window, config){
     f: ob,
   });
   Object.defineProperty(ob.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetDiscProperties;
-    }
+    },
   });
-  
+
   function Ma() {
     this.da = 0;
     this.P = 0;
@@ -5607,11 +5712,11 @@ function abcHaxballAPI(window, config){
     f: Ma,
   });
   Object.defineProperty(Ma.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.StartGame;
-    }
+    },
   });
-  
+
   function ma() {
     this.da = 0;
     this.min = 0;
@@ -5645,9 +5750,9 @@ function abcHaxballAPI(window, config){
     f: ma,
   });
   Object.defineProperty(ma.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.SetKickRateLimit;
-    }
+    },
   });
 
   function la() {
@@ -5683,17 +5788,17 @@ function abcHaxballAPI(window, config){
   la.la = function (a) {
     for (var b = new la(), c = a.T.I, d = [], e = 0; e < c.length; ) {
       var f = a.Ie.get(c[e++].V);
-      d.push(null == f ? (a.T._HP_ && a.T._HP_()) : f.yb);
+      d.push(null == f ? a.T._HP_ && a.T._HP_() : f.yb);
     }
     b.we = d;
     return b;
   };
   Object.defineProperty(la.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.Ping;
-    }
+    },
   });
-  
+
   function La() {
     this.da = 0;
     this.P = 0;
@@ -5722,9 +5827,9 @@ function abcHaxballAPI(window, config){
     f: La,
   });
   Object.defineProperty(La.prototype, "eventType", {
-    get(){
+    get() {
       return OperationType.StopGame;
-    }
+    },
   });
 
   Ua.za = m.Fa({ Ba: !1, Aa: !1 });
@@ -5802,20 +5907,17 @@ function abcHaxballAPI(window, config){
         throw new q(createError(ErrorCodes.ChangeTeamColorsInvalidTeamIdError)); // "Invalid team id"
     }
     var l = colors.length;
-    if (l < 1)
-      return b;
-    if (l > 4)
-      l = 4;
+    if (l < 1) return b;
+    if (l > 4) l = 4;
     c.hd = ((256 * K.parseInt(angle)) / 360) | 0;
     c.ed = K.parseInt("0x" + colors[0]);
     if (1 < l) {
       c.fb = [];
-      for (var d = 1, e = l; d < e; )
-        c.fb.push(K.parseInt("0x" + colors[d++]));
+      for (var d = 1, e = l; d < e; ) c.fb.push(K.parseInt("0x" + colors[d++]));
     }
     return b;
   };
-  
+
   function Zb() {}
   Zb.b = !0;
   Zb.Km = [
@@ -5922,7 +6024,7 @@ function abcHaxballAPI(window, config){
       for (
         var b = this.$a[0].weight, c = 0;
         c < this.$a.length - 1 && !(b >= a);
-  
+
       )
         ++c, (b += this.$a[c].weight);
       return this.$a[c].value;
@@ -5932,14 +6034,14 @@ function abcHaxballAPI(window, config){
     },
     f: Mb,
   };
-  
+
   function yb(a) {
     this.Y = 0; // frame no
     this.T = a;
   }
   yb.b = !0;
   yb.prototype = { f: yb };
-  
+
   function V(a) {
     this.Ri = new Ia();
     this.te = 0; // total number of received messages
@@ -5951,7 +6053,7 @@ function abcHaxballAPI(window, config){
     this.Ff = 120;
     yb.call(this, a);
   }
-  
+
   V.b = !0;
   V.ma = yb;
   V.prototype = C(yb.prototype, {
@@ -5991,20 +6093,23 @@ function abcHaxballAPI(window, config){
     },
     Cg: function (a) {
       a.mb == this.Y && a.da <= this.cc
-        ? ((a.da = this.cc++), a.apply(this.T, this.haxball), null != this.fc && this.fc(a))
+        ? ((a.da = this.cc++),
+          a.apply(this.T, this.haxball),
+          null != this.fc && this.fc(a))
         : this.le.Rm(a);
     },
     wk: function (a, b) {
       if (0 >= a) return this.T;
       a > this.Ff && (a = this.Ff);
       ya.zc++;
-      var c = this.T.sc(/*this.haxball*/), d;
+      var c = this.T.sc(/*this.haxball*/),
+        d;
       null != b ? (this.Ri.as(this.le, b), (d = this.Ri)) : (d = this.le);
       d = d.list;
       for (
         var e = 0, f = d.length, g = this.Y, k = a | 0, l = g + k;
         g <= l;
-  
+
       ) {
         for (; e < f; ) {
           var t = d[e];
@@ -6030,7 +6135,7 @@ function abcHaxballAPI(window, config){
     },
     f: V,
   });
-  
+
   function tb(a, b) {
     this.Nj = a;
     this.Si = b;
@@ -6063,7 +6168,7 @@ function abcHaxballAPI(window, config){
     },
     f: tb,
   };
-  
+
   function G(a, b) {
     if (null == b) return null;
     null == b.oh && (b.oh = rc++);
@@ -6072,19 +6177,19 @@ function abcHaxballAPI(window, config){
     null == c && ((c = b.bind(a)), (a.ej[b.oh] = c));
     return c;
   }
-  
+
   var Ab = {};
   var Ob = (Ab["bas.basnet.FailReason"] = {
     Gf: !0,
     nh: ["PeerFailed", "Rejected", "Cancelled", "Error"],
     jh: { nb: 0, eb: "bas.basnet.FailReason", toString: ga },
-    lh: (()=>{
-          var X = function (a) {
-            return { nb: 1, code: a, eb: "bas.basnet.FailReason", toString: ga };
-          };
-          X.Ae = ["code"];
-          return X;
-        })(),
+    lh: (() => {
+      var X = function (a) {
+        return { nb: 1, code: a, eb: "bas.basnet.FailReason", toString: ga };
+      };
+      X.Ae = ["code"];
+      return X;
+    })(),
     hh: { nb: 2, eb: "bas.basnet.FailReason", toString: ga },
     Error: { nb: 3, eb: "bas.basnet.FailReason", toString: ga },
   });
@@ -6092,48 +6197,48 @@ function abcHaxballAPI(window, config){
     Gf: !0,
     nh: ["Accept", "Reject"],
     hn: { nb: 0, eb: "bas.basnet.ConnectionRequestResponse", toString: ga },
-    kh: (()=>{
-          var X = function (a) {
-            return {
-              nb: 1,
-              reason: a,
-              eb: "bas.basnet.ConnectionRequestResponse",
-              toString: ga,
-            };
-          };
-          X.Ae = ["reason"];
-          return X;
-        })(),
+    kh: (() => {
+      var X = function (a) {
+        return {
+          nb: 1,
+          reason: a,
+          eb: "bas.basnet.ConnectionRequestResponse",
+          toString: ga,
+        };
+      };
+      X.Ae = ["reason"];
+      return X;
+    })(),
   });
   var xb = (Ab["bas.marf.net.ConnFailReason"] = {
     Gf: !0,
     nh: ["Cancelled", "PeerFailed", "Rejected", "Other"],
     hh: { nb: 0, eb: "bas.marf.net.ConnFailReason", toString: ga },
     jh: { nb: 1, eb: "bas.marf.net.ConnFailReason", toString: ga },
-    lh: (()=>{
-          var X = function (a) {
-            return {
-              nb: 2,
-              reason: a,
-              eb: "bas.marf.net.ConnFailReason",
-              toString: ga,
-            };
-          };
-          X.Ae = ["reason"];
-          return X;
-        })(),
-    ih: (()=>{
-          var X = function (a) {
-            return {
-              nb: 3,
-              description: a,
-              eb: "bas.marf.net.ConnFailReason",
-              toString: ga,
-            };
-          };
-          X.Ae = ["description"];
-          return X;
-        })(),
+    lh: (() => {
+      var X = function (a) {
+        return {
+          nb: 2,
+          reason: a,
+          eb: "bas.marf.net.ConnFailReason",
+          toString: ga,
+        };
+      };
+      X.Ae = ["reason"];
+      return X;
+    })(),
+    ih: (() => {
+      var X = function (a) {
+        return {
+          nb: 3,
+          description: a,
+          eb: "bas.marf.net.ConnFailReason",
+          toString: ga,
+        };
+      };
+      X.Ae = ["description"];
+      return X;
+    })(),
   });
 
   function Va(a, b, c) {
@@ -6255,7 +6360,7 @@ function abcHaxballAPI(window, config){
     },
     f: Va,
   };
-  
+
   function Nb(a) {
     this.gd = null;
     this.Eq = 1e4;
@@ -6272,9 +6377,7 @@ function abcHaxballAPI(window, config){
         var a = b.Eq - b.Br();
         0 >= a
           ? b.ia()
-          : (clearTimeout(b.Am),
-            (a = setTimeout(c, a + 1e3)),
-            (b.Am = a));
+          : (clearTimeout(b.Am), (a = setTimeout(c, a + 1e3)), (b.Am = a));
       };
     c();
     this.Ra.oniceconnectionstatechange = function () {
@@ -6286,8 +6389,7 @@ function abcHaxballAPI(window, config){
       var e = d[a];
       ++a;
       e.onmessage = function (a) {
-        b.wd &&
-          ((b.ym = performance.now()), null != b.lg && b.lg(a.data));
+        b.wd && ((b.ym = performance.now()), null != b.lg && b.lg(a.data));
       };
       e.onclose = function () {
         b.ia();
@@ -6319,11 +6421,11 @@ function abcHaxballAPI(window, config){
     },
     f: Nb,
   };
-  
+
   var pc = {
     b: !0,
     description: function (a) {
-      switch(a){
+      switch (a) {
         case 4001:
           return createError(ErrorCodes.RoomClosed); // "The room was closed."
         case 4100:
@@ -6339,7 +6441,7 @@ function abcHaxballAPI(window, config){
       }
     },
   };
-  
+
   function wb(a, b, c, d, e, f) {
     this.rh = this.yh = !1;
     var g = this;
@@ -6355,14 +6457,20 @@ function abcHaxballAPI(window, config){
     this.pa.di = function (b) {
       g.jr = b;
       config.proxy?.WebSocketUrl && (a = config.proxy.WebSocketUrl);
-      (!a.endsWith("client")) && (((!a.endsWith("/")) && (a += "/")), a += "client");
-      if (config.proxy?.WebSocketChangeOriginAllowed) // custom environment
-        g.X = new WebSocket(a + "?id=" + c + (null == f ? "" : "&token=" + f),{
+      !a.endsWith("client") &&
+        (!a.endsWith("/") && (a += "/"), (a += "client"));
+      if (config.proxy?.WebSocketChangeOriginAllowed)
+        // custom environment
+        g.X = new WebSocket(a + "?id=" + c + (null == f ? "" : "&token=" + f), {
           headers: {
-            Origin: (config.backend.secure?"https":"http")+"://"+config.backend.hostname
-          }
+            Origin:
+              (config.backend.secure ? "https" : "http") +
+              "://" +
+              config.backend.hostname,
+          },
         });
-      else // browser
+      // browser
+      else
         g.X = new WebSocket(a + "?id=" + c + (null == f ? "" : "&token=" + f));
       g.X.binaryType = "arraybuffer";
       g.X.onclose = function (a) {
@@ -6402,7 +6510,7 @@ function abcHaxballAPI(window, config){
       this.Oe(Ob.hh);
     },
     Uj: function () {
-      try{
+      try {
         null != this.X &&
           ((this.X.onclose = null),
           (this.X.onmessage = null),
@@ -6410,7 +6518,7 @@ function abcHaxballAPI(window, config){
           (this.X.onopen = null),
           this.X.close(),
           (this.X = null));
-      }catch(ex){}
+      } catch (ex) {}
       null != this.pa && (this.pa.ia(), (this.pa = null));
     },
     Oe: function (a) {
@@ -6473,7 +6581,7 @@ function abcHaxballAPI(window, config){
     },
     f: wb,
   };
-  
+
   function xa(haxball, a, b) {
     this.haxball = haxball;
     this.Di = [];
@@ -6505,7 +6613,8 @@ function abcHaxballAPI(window, config){
             c.uq(a);
           };
           a.cf = function () {
-            3 != c.pd && y.i(c.df, xb.ih(createError(ErrorCodes.ConnectionClosed))); // "Connection closed"
+            3 != c.pd &&
+              y.i(c.df, xb.ih(createError(ErrorCodes.ConnectionClosed))); // "Connection closed"
             c.ia();
           };
           a = setTimeout(function () {
@@ -6565,12 +6674,18 @@ function abcHaxballAPI(window, config){
       null != this.pc && ((this.pc.bd = null), this.pc.Gn(), (this.pc = null));
       clearTimeout(this.re);
       null != this.pa && ((this.pa.cf = null), this.pa.ia(), (this.pa = null));
-      this.ek = null == a ? createError(ErrorCodes.ConnectionClosed)/*"Connection closed"*/ : a;
+      this.ek =
+        null == a
+          ? createError(ErrorCodes.ConnectionClosed) /*"Connection closed"*/
+          : a;
       this.tf(4);
       y.i(this.haxball._onRoomLeave, this.ek);
     },
     tf: function (a) {
-      this.pd != a && ((this.pd = a), (y.i(this.haxball._onConnectionStateChange, a)), null != this.Ad && this.Ad(a));
+      this.pd != a &&
+        ((this.pd = a),
+        y.i(this.haxball._onConnectionStateChange, a),
+        null != this.Ad && this.Ad(a));
     },
     wd: function () {
       return 3 == this.pd;
@@ -6742,7 +6857,8 @@ function abcHaxballAPI(window, config){
       this.Di.push(a);
       var b = this.sg.$g(0.5) | 0,
         c = w.ha();
-      this.haxball.room?._modifyClientPing && (b = this.haxball.room._modifyClientPing(b));
+      this.haxball.room?._modifyClientPing &&
+        (b = this.haxball.room._modifyClientPing(b));
       c.l(2);
       c.s(a);
       c.lb(b);
@@ -6761,7 +6877,8 @@ function abcHaxballAPI(window, config){
         a.zf.Aa && (c = this.Y + (this.Xc | 0) + this.bc);
         var d = w.ha();
         d.l(1);
-        this.haxball.room?._modifyFrameNo && (c = this.haxball.room._modifyFrameNo(c));
+        this.haxball.room?._modifyFrameNo &&
+          (c = this.haxball.room._modifyFrameNo(c));
         d.tb(c);
         d.tb(b);
         m.lj(a, d);
@@ -6771,7 +6888,7 @@ function abcHaxballAPI(window, config){
     },
     f: xa,
   });
-  
+
   function Sa(haxball, a, b, c, d) {
     this.haxball = haxball;
     this.th = new Set();
@@ -6804,14 +6921,14 @@ function abcHaxballAPI(window, config){
       this.ke = null;
       clearInterval(this.ol);
       if (null != this.X) {
-        try{
+        try {
           this.X.onmessage = null;
           this.X.onerror = null;
           this.X.onclose = null;
           this.X.onopen = null;
           this.X.close();
           this.X = null;
-        }catch(ex){}
+        } catch (ex) {}
       }
       this.qk();
     },
@@ -6830,7 +6947,7 @@ function abcHaxballAPI(window, config){
               f = 0,
               g = this.Mc.byteLength;
             f < g;
-  
+
           ) {
             var k = f++;
             if (c[k] != d[k]) {
@@ -6863,15 +6980,17 @@ function abcHaxballAPI(window, config){
     },
     Ji: function (a) {
       function b(a) {
-        a = a.sitekey/*, c = this*/;
+        a = a.sitekey /*, c = this*/;
         if (null == a) throw new q(null);
-        d.haxball.useRecaptchaToken = (a)=>{//c.
-          d.haxball.useRecaptchaToken = null;//c.
+        d.haxball.useRecaptchaToken = (a) => {
+          //c.
+          d.haxball.useRecaptchaToken = null; //c.
           d.Ji(a);
         };
-        if (!d.haxball.onRequestRecaptcha)//c.
+        if (!d.haxball.onRequestRecaptcha)
+          //c.
           throw createError(ErrorCodes.MissingRecaptchaCallbackError); // "Recaptcha requested. Either set onRequestRecaptcha or set a working token while creating/joining a room."
-        d.haxball.onRequestRecaptcha(a);//c.
+        d.haxball.onRequestRecaptcha(a); //c.
         /*
         null != d.ef &&
           d.ef(a, function (a) {
@@ -6885,14 +7004,19 @@ function abcHaxballAPI(window, config){
         a = a.token;
         if (null == a) throw new q(null);
         config.proxy?.WebSocketUrl && (b = config.proxy?.WebSocketUrl);
-        (!b.endsWith("host")) && (((!b.endsWith("/")) && (b += "/")), b += "host");
-        if (config.proxy?.WebSocketChangeOriginAllowed) // custom environment
+        !b.endsWith("host") && (!b.endsWith("/") && (b += "/"), (b += "host"));
+        if (config.proxy?.WebSocketChangeOriginAllowed)
+          // custom environment
           d.X = new WebSocket(b + "?token=" + a, {
             headers: {
-              Origin: (config.backend.secure?"https":"http")+"://"+config.backend.hostname
-            }
+              Origin:
+                (config.backend.secure ? "https" : "http") +
+                "://" +
+                config.backend.hostname,
+            },
           });
-        else{ // browser
+        else {
+          // browser
           d.X = new WebSocket(b + "?token=" + a);
         }
         d.X.binaryType = "arraybuffer";
@@ -6909,7 +7033,7 @@ function abcHaxballAPI(window, config){
       }
       //null == a && (a = "");
       var d = this;
-      M.zl(this.xr, "token=" + (a || this.Dg) + "&rcr="/* + a*/, M.vj)
+      M.zl(this.xr, "token=" + (a || this.Dg) + "&rcr=" /* + a*/, M.vj)
         .then(function (a) {
           switch (a.action) {
             case "connect":
@@ -7080,7 +7204,8 @@ function abcHaxballAPI(window, config){
       a.l(this.nf ? 1 : 0);
       this.X.send(a.Hd());
       this.dm = this.nf;
-      this.haxball.room._onRoomRecaptchaModeChange && this.haxball.room._onRoomRecaptchaModeChange(this.nf);
+      this.haxball.room._onRoomRecaptchaModeChange &&
+        this.haxball.room._onRoomRecaptchaModeChange(this.nf);
     },
     Bi: function (a, b, c, d) {
       var e = w.ha(32, !1);
@@ -7124,6 +7249,10 @@ function abcHaxballAPI(window, config){
       this.If.clear();
       this.th.clear();
     },
+    removePlayerBan: function (a) {
+      for (var b = 0, c = a.Rs; b < c.length; ) this.If.delete(c[b++]);
+      this.th.delete(a.Ps);
+    },
     f: Sa,
   };
 
@@ -7155,7 +7284,9 @@ function abcHaxballAPI(window, config){
   I.xo = function (a) {
     a = a.split(".");
     if (4 != a.length || "idkey" != a[0])
-      return Promise.reject(createError(ErrorCodes.AuthFromKeyInvalidIdFormatError)); // "Invalid id format"
+      return Promise.reject(
+        createError(ErrorCodes.AuthFromKeyInvalidIdFormatError)
+      ); // "Invalid id format"
     var b = a[1],
       c = a[2],
       d = a[3];
@@ -7256,7 +7387,7 @@ function abcHaxballAPI(window, config){
     },
     f: I,
   };
-    
+
   function $b(a) {
     this.xj = new Map();
     this.Ho = new tb(100, 16);
@@ -7275,7 +7406,7 @@ function abcHaxballAPI(window, config){
     },
     f: $b,
   };
-  
+
   function Lb(haxball, a) {
     this.haxball = haxball;
     this.Kj = new Map();
@@ -7305,7 +7436,8 @@ function abcHaxballAPI(window, config){
   }
   Lb.b = !0;
   Lb.ma = V;
-  Lb.prototype = C(V.prototype, { // TODO: fix __internalData sometime.
+  Lb.prototype = C(V.prototype, {
+    // TODO: fix __internalData sometime.
     ia: function () {
       this.Ic.ia();
       for (var a = 0, b = this.ac; a < b.length; ) {
@@ -7338,6 +7470,11 @@ function abcHaxballAPI(window, config){
       this.Kj.clear();
       this.haxball.room._onBansClear && this.haxball.room._onBansClear();
     },
+    clearBan(a) {
+      let b = this.Kj.get(a);
+      null != b && this.Ic.removePlayerBan(b);
+      // this.yc.delete(a)
+    },
     Fi: function (a) {
       this.Ic.Fi(a);
     },
@@ -7353,31 +7490,29 @@ function abcHaxballAPI(window, config){
       this.Ci();
       0 < this.ac.length && this.Eg(this.Zh(a), 1);
     },
-    ra_custom: function (a, senderId, onlyCustom) { // custom events will only be sent to custom clients.
+    ra_custom: function (a, senderId, onlyCustom) {
+      // custom events will only be sent to custom clients.
       a.P = senderId;
       var b;
-      0 < this.ac.length && ( 
-        onlyCustom ? (
-          a.apply(this.T),
-          this.Eg_custom(a, 1)
-        ) : (
-          b = this.Y + this.wi + this.bc,
-          a.zf.Aa || (b = this.Y),
-          a.mb = b,
-          this.Cg(a),
-          this.Ci(),
-          this.Eg(this.Zh(a), 1)
-        )
-      );
+      0 < this.ac.length &&
+        (onlyCustom
+          ? (a.apply(this.T), this.Eg_custom(a, 1))
+          : ((b = this.Y + this.wi + this.bc),
+            a.zf.Aa || (b = this.Y),
+            (a.mb = b),
+            this.Cg(a),
+            this.Ci(),
+            this.Eg(this.Zh(a), 1)));
     },
-    _mf_: function(a, b, x) { // private messaging.
-      if (b==0){
+    _mf_: function (a, b, x) {
+      // private messaging.
+      if (b == 0) {
         a.apply(this.T);
         return;
       }
       var c = this.Ie.get(b);
       if (null != c) {
-        (!x) && (a.P = 0); // clients might be able to send the message too.
+        !x && (a.P = 0); // clients might be able to send the message too.
         var d = w.ha();
         d.l(6);
         m.lj(a, d);
@@ -7386,13 +7521,19 @@ function abcHaxballAPI(window, config){
     },
     C: function () {
       var a = (((performance.now() - this.Li) * this.Ac) | 0) - this.Y;
-      (a > 0) && this.zj(a);
-      (this.Y - this.Kk >= 7) && this.Ci();
-      (this.Y - this.Jk >= this.Mn) && (this.Ci(), this.gr());
+      a > 0 && this.zj(a);
+      this.Y - this.Kk >= 7 && this.Ci();
+      this.Y - this.Jk >= this.Mn && (this.Ci(), this.gr());
     },
     Sf: function () {
-      (this.bc < 0) && (this.bc = 0);
-      return this.wk((performance.now() - this.Li) * this.Ac - this.Y + this.wi + this.bc + this.rd);
+      this.bc < 0 && (this.bc = 0);
+      return this.wk(
+        (performance.now() - this.Li) * this.Ac -
+          this.Y +
+          this.wi +
+          this.bc +
+          this.rd
+      );
     },
     Oo: function (a, b) {
       if (!this.upc && this.ac.length >= this.fg) return gc.kh(4100);
@@ -7470,7 +7611,9 @@ function abcHaxballAPI(window, config){
       for (var c = 0, d = this.ac; c < d.length; ) {
         var e = d[c];
         ++c;
-        e.yg && this.haxball.__internalData.customClientIds.has(e.$) && e.Rb(f, 0);
+        e.yg &&
+          this.haxball.__internalData.customClientIds.has(e.$) &&
+          e.Rb(f, 0);
       }
     },
     hr: function (a) {
@@ -7508,19 +7651,19 @@ function abcHaxballAPI(window, config){
         ["catch"](function () {
           return null;
         })
-        .then(function (a) {
+        .then(async function (a) {
           try {
             if (-1 != c.ac.indexOf(b)) {
               b.Ns = a;
               var d = c.up++;
               b.$ = d;
               c.Ie.set(d, b);
-              vb.i(
+              await vb.i(
                 c.Hp,
                 d,
                 new F(new DataView(e.buffer, e.byteOffset, e.byteLength), !1),
-                b.pa.gd,       // send conn (fallback should be b.pa.oe)
-                a              // send auth
+                b.pa.gd, // send conn (fallback should be b.pa.oe)
+                a // send auth
               );
               b.yg = !0;
               c.hr(b);
@@ -7530,7 +7673,7 @@ function abcHaxballAPI(window, config){
           }
         });
     },
-    oq: function (a, b) {
+    oq: async function (a, b) {
       this.C();
       try {
         if (!b.Ho.Cm()) throw new q(1);
@@ -7576,7 +7719,7 @@ function abcHaxballAPI(window, config){
         d = a.hb(),
         e = m.fh(a),
         f = e.zf.oj;
-        if (null != f) {
+      if (null != f) {
         var g = b.xj.get(f);
         null == g && ((g = new tb(f.$i, f.uj)), b.xj.set(f, g));
         if (!g.Cm()) throw new q(3);
@@ -7584,12 +7727,10 @@ function abcHaxballAPI(window, config){
       e.P = b.$;
       if (!this.haxball.__internalData.onOperationReceived(e, this.Y, c))
         return;
-      if (e.__proto__.f==CustomEvent){
+      if (e.__proto__.f == CustomEvent) {
         this.haxball.__internalData.roomObj?.ya.ra_custom(e, e.P, true);
         return;
-      }
-      else if (e.__proto__.f==qa && e.Pd.F.length==0)
-        return;
+      } else if (e.__proto__.f == qa && e.Pd.F.length == 0) return;
       f = this.Y;
       g = this.Y + 120;
       e.ue = d;
@@ -7598,7 +7739,7 @@ function abcHaxballAPI(window, config){
     },
     f: Lb,
   });
-  
+
   function Ra(haxball) {
     this.$d = this.Yf = 0;
     this.internalData = haxball.__internalData;
@@ -7606,7 +7747,7 @@ function abcHaxballAPI(window, config){
   Ra.b = !0;
   Ra.prototype = {
     C: function () {
-      var a = this.internalData.keyState;//this.$d
+      var a = this.internalData.keyState; //this.$d
       if (null != this.ng && a != this.Yf) {
         this.Yf = a;
         var b = new Ga();
@@ -7618,14 +7759,15 @@ function abcHaxballAPI(window, config){
       if (null != this.ng && 0 != this.Yf) {
         this.Yf = this.$d = 0;
         var a = new Ga();
-        a.input = 0;//this.internalData.keyState;
+        a.input = 0; //this.internalData.keyState;
         this.ng(a);
       }
     },
     f: Ra,
   };
-  
-  function ba(haxball, a) { // to fix: haxball, __internalData
+
+  function ba(haxball, a) {
+    // to fix: haxball, __internalData
     this.haxball = haxball;
     this.Nf = null;
     this.Ik = false;
@@ -7639,46 +7781,52 @@ function abcHaxballAPI(window, config){
     var b = this;
     this.Of = new ub(a, function (a) {});
     this.ya = a;
-    
-    // a.T.xxx: these functions run only once; 
-    // see in function zj: this.T.C(1); 
+
+    // a.T.xxx: these functions run only once;
+    // see in function zj: this.T.C(1);
     // all other engine updates run K.C(x), and not T.C(x).
-    
-    a.T.iq = (b)=>{
-      haxball.room._onPlayerInputChange && haxball.room._onPlayerInputChange(b.V, b.ob);
+
+    a.T.iq = (b) => {
+      haxball.room._onPlayerInputChange &&
+        haxball.room._onPlayerInputChange(b.V, b.ob);
     };
-    a.T.tl = (b)=>{
+    a.T.tl = (b) => {
       haxball.room._onPlayerJoin && haxball.room._onPlayerJoin(b); // V=id, w=name, Kd=flag, Xb=avatar, conn, auth
     };
-    a.T.ji = (d)=>{
+    a.T.ji = (d) => {
       haxball.room._onPlayerBallKick && haxball.room._onPlayerBallKick(d?.V);
     };
-    a.T.Ni = (team)=>{
+    a.T.Ni = (team) => {
       haxball.room._onTeamGoal && haxball.room._onTeamGoal(team?.$);
     };
-    a.T.Oi = (team)=>{
+    a.T.Oi = (team) => {
       haxball.room._onGameEnd && haxball.room._onGameEnd(team.$); // winningTeamId
     };
-    a.T.ml = (c, Bf, e)=>{
-      (!e) && haxball.room._onGamePauseChange && haxball.room._onGamePauseChange(Bf, c?.V) // paused, byId
+    a.T.ml = (c, Bf, e) => {
+      !e &&
+        haxball.room._onGamePauseChange &&
+        haxball.room._onGamePauseChange(Bf, c?.V); // paused, byId
     };
-    a.T.Ki = function(a){
+    a.T.Ki = function (a) {
       haxball.room._onGameStart && haxball.room._onGameStart(a?.V); // byId
-    }
-    a.T.Os = ()=>{
+    };
+    a.T.Os = () => {
       haxball.room._onGameTick && haxball.room._onGameTick();
     };
-    a.T._KO_ = ()=>{
+    a.T._KO_ = () => {
       haxball.room._onKickOff && haxball.room._onKickOff();
     };
-    a.T._CDD_ = (a, b, c, d)=>{
-      haxball.room._onCollisionDiscVsDisc && haxball.room._onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
+    a.T._CDD_ = (a, b, c, d) => {
+      haxball.room._onCollisionDiscVsDisc &&
+        haxball.room._onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
     };
-    a.T._CDP_ = (a, b, c)=>{
-      haxball.room._onCollisionDiscVsPlane && haxball.room._onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
+    a.T._CDP_ = (a, b, c) => {
+      haxball.room._onCollisionDiscVsPlane &&
+        haxball.room._onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
     };
-    a.T._CDS_ = (a, b, c)=>{
-      haxball.room._onCollisionDiscVsSegment && haxball.room._onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
+    a.T._CDS_ = (a, b, c) => {
+      haxball.room._onCollisionDiscVsSegment &&
+        haxball.room._onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
     };
     a.T._AT_ = (a, b, c, d, e) => {
       haxball.room._onAutoTeams && haxball.room._onAutoTeams(a, b, c, d, e);
@@ -7687,161 +7835,177 @@ function abcHaxballAPI(window, config){
       haxball.room._onTimeLimitChange && haxball.room._onTimeLimitChange(a, b);
     };
     a.T._SLC_ = (a, b) => {
-      haxball.room._onScoreLimitChange && haxball.room._onScoreLimitChange(a, b);
+      haxball.room._onScoreLimitChange &&
+        haxball.room._onScoreLimitChange(a, b);
     };
     a.T._PAC_ = (a, b) => {
-      haxball.room._onPlayerAvatarChange && haxball.room._onPlayerAvatarChange(a, b);
+      haxball.room._onPlayerAvatarChange &&
+        haxball.room._onPlayerAvatarChange(a, b);
     };
     a.T._PHAC_ = (a, b) => {
-      haxball.room._onPlayerHeadlessAvatarChange && haxball.room._onPlayerHeadlessAvatarChange(a, b);
+      haxball.room._onPlayerHeadlessAvatarChange &&
+        haxball.room._onPlayerHeadlessAvatarChange(a, b);
     };
     a.T._RP_ = (a, b) => {
-      haxball.room._onPlayersOrderChange && haxball.room._onPlayersOrderChange(a, b);
+      haxball.room._onPlayersOrderChange &&
+        haxball.room._onPlayersOrderChange(a, b);
     };
     a.T._PTC_ = (a, b, c) => {
-      haxball.room._onPlayerTeamChange && haxball.room._onPlayerTeamChange(a, b, c);
+      haxball.room._onPlayerTeamChange &&
+        haxball.room._onPlayerTeamChange(a, b, c);
     };
     a.T._TCC_ = (a, b, c) => {
-      haxball.room._onTeamColorsChange && haxball.room._onTeamColorsChange(a, b, c);
+      haxball.room._onTeamColorsChange &&
+        haxball.room._onTeamColorsChange(a, b, c);
     };
     a.T._TLC2_ = (a, b) => {
       haxball.room._onTeamsLockChange && haxball.room._onTeamsLockChange(a, b);
     };
     a.T._CCI_ = (x, y, z) => {
-      if (haxball.__internalData.isHost){
-        if (z==1){
+      if (haxball.__internalData.isHost) {
+        if (z == 1) {
           x.customClient = true;
           haxball.__internalData.customClientIds.add(b.V);
         }
-      }
-      else if (z==0){
+      } else if (z == 0) {
         x.customClient = true;
         haxball.__internalData.customClientIds.add(b.V);
         x = a.T.na(y);
-        if (x)
-          x.customClient = true;
+        if (x) x.customClient = true;
         haxball.__internalData.customClientIds.add(y);
         a.ra(na.la(1, y, 1), 0, true);
       }
     };
-    a.T._CE_ = (a, b, c)=>{
+    a.T._CE_ = (a, b, c) => {
       haxball.room._onCustomEvent && haxball.room._onCustomEvent(a, b, c); // type, data, byUser
     };
-    a.T._SDP_ = (a, b, c, d)=>{
-      haxball.room._onSetDiscProperties && haxball.room._onSetDiscProperties(a, b, c, d); // id, type, data1, data2
+    a.T._SDP_ = (a, b, c, d) => {
+      haxball.room._onSetDiscProperties &&
+        haxball.room._onSetDiscProperties(a, b, c, d); // id, type, data1, data2
     };
-    a.T._PD_ = (a)=>{
+    a.T._PD_ = (a) => {
       haxball.room._onPingData && haxball.room._onPingData(a); // ping array
     };
-    a.T._HP_ = ()=>{
-      return haxball?.room?.hostPing || 0
+    a.T._HP_ = () => {
+      return haxball?.room?.hostPing || 0;
     };
-    a.T._RI_ = ()=>{
+    a.T._RI_ = () => {
       b.ob.al();
     };
-    a.T._HC_ = (a)=>{
+    a.T._HC_ = (a) => {
       haxball.room._onHandicapChange && haxball.room._onHandicapChange(a);
     };
-    a.T._EC_ = (a)=>{
-      haxball.room._onExtrapolationChange && haxball.room._onExtrapolationChange(a);
+    a.T._EC_ = (a) => {
+      haxball.room._onExtrapolationChange &&
+        haxball.room._onExtrapolationChange(a);
     };
-    a.T.Pi = ()=>{ 
+    a.T.Pi = () => {
       haxball.room._onTimeIsUp && haxball.room._onTimeIsUp();
     };
-    a.T.lq = ()=>{
+    a.T.lq = () => {
       haxball.room._onPositionsReset && haxball.room._onPositionsReset();
     };
-    a.T.ko = function (c) { // set sync
-      b.am != c && ((b.am = c), (c = ta.la(c)), (haxball.__internalData.execOperationReceivedOnHost(c)!=false && a.ra(c)));
+    a.T.ko = function (c) {
+      // set sync
+      b.am != c &&
+        ((b.am = c),
+        (c = ta.la(c)),
+        haxball.__internalData.execOperationReceivedOnHost(c) != false &&
+          a.ra(c));
     };
-    a.T.rl = function(b, Tc){
+    a.T.rl = function (b, Tc) {
       haxball.room._onPlayerChat && haxball.room._onPlayerChat(b.V, Tc); // id, message
     };
-    a.T.Vl = function(msg, color, style, sound){
-      haxball.room._onAnnouncement && haxball.room._onAnnouncement(msg, color, style, sound); // msg, color, style, sound
+    a.T.Vl = function (msg, color, style, sound) {
+      haxball.room._onAnnouncement &&
+        haxball.room._onAnnouncement(msg, color, style, sound); // msg, color, style, sound
     };
-    a.T.vf = function(b){
-      haxball.room._onGameStop && haxball.room._onGameStop(b?.V);  //byId
+    a.T.vf = function (b) {
+      haxball.room._onGameStop && haxball.room._onGameStop(b?.V); //byId
     };
-    a.T.Ii = function(a, e){
+    a.T.Ii = function (a, e) {
       haxball.room._onStadiumChange && haxball.room._onStadiumChange(e, a?.V); // map, byId
     };
-    a.T.sl = function(b){
-      haxball.room._onPlayerSyncChange && haxball.room._onPlayerSyncChange(b?.V, b?.Ld);// id, sync
+    a.T.sl = function (b) {
+      haxball.room._onPlayerSyncChange &&
+        haxball.room._onPlayerSyncChange(b?.V, b?.Ld); // id, sync
     };
-    a.T.ii = function(b, c){
-      haxball.room._onPlayerAdminChange && haxball.room._onPlayerAdminChange(c?.V, c?.cb, b?.V)// id, isAdmin, byId
+    a.T.ii = function (b, c) {
+      haxball.room._onPlayerAdminChange &&
+        haxball.room._onPlayerAdminChange(c?.V, c?.cb, b?.V); // id, isAdmin, byId
     };
-    a.T.Hk = function(a, b, c, d){
-      haxball.room._onKickRateLimitChange && haxball.room._onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
+    a.T.Hk = function (a, b, c, d) {
+      haxball.room._onKickRateLimitChange &&
+        haxball.room._onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
     };
     a.T.ul = function (d, e, f, g) {
       y.i(b.Op, d.V);
-      null != e && (
-        vb.i(b.Np, d.V, e, null != g ? g.w : null, f)
-      );
+      null != e && vb.i(b.Np, d.V, e, null != g ? g.w : null, f);
       haxball.room._onPlayerLeave && haxball.room._onPlayerLeave(d, e, f, g?.V); // playerObj, reason, isBanned, byId
     };
-    a.T.wl = function(a, b){
-      haxball.room._onPlayerChatIndicatorChange && haxball.room._onPlayerChatIndicatorChange(a?.V, !b); // id, value
+    a.T.wl = function (a, b) {
+      haxball.room._onPlayerChatIndicatorChange &&
+        haxball.room._onPlayerChatIndicatorChange(a?.V, !b); // id, value
     };
 
     this.ob.ng = function (b) {
-      haxball.__internalData.execOperationReceivedOnHost(b)!=false && a.ra(b);
+      haxball.__internalData.execOperationReceivedOnHost(b) != false && a.ra(b);
     };
     this.aq = function (b) {
       b = da.la(1, b);
-      haxball.__internalData.execOperationReceivedOnHost(b)!=false && a.ra(b);
+      haxball.__internalData.execOperationReceivedOnHost(b) != false && a.ra(b);
     };
     this.Tp = function (b) {
       b = da.la(0, b);
-      haxball.__internalData.execOperationReceivedOnHost(b)!=false && a.ra(b);
+      haxball.__internalData.execOperationReceivedOnHost(b) != false && a.ra(b);
     };
     this.og = function (b) {
       b = qa.la(b);
-      haxball.__internalData.execOperationReceivedOnHost(b)!=false && a.ra(b);
+      haxball.__internalData.execOperationReceivedOnHost(b) != false && a.ra(b);
     };
     this.Yp = function () {
       var msg = new Ma();
-      haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg);
+      haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+        a.ra(msg);
     };
     this.Zp = function () {
       var msg = new La();
-      haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg);
+      haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+        a.ra(msg);
     };
     this.Mp = function () {
       b.Bm();
     };
     this.mg = function (b, c) {
       var d = S.la(b, c);
-      haxball.__internalData.execOperationReceivedOnHost(d)!=false && a.ra(d);
+      haxball.__internalData.execOperationReceivedOnHost(d) != false && a.ra(d);
     };
     this.ee = this.Wq.bind(this); // G(this, this.Wq);
     this.Dp = function () {
       var msg = new Qa();
-      haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg);
+      haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+        a.ra(msg);
     };
     this.Pp = function () {
       ba.Bq(haxball, a);
     };
     this.$p = function (b) {
       b = pa.la(b);
-      haxball.__internalData.execOperationReceivedOnHost(b)!=false && a.ra(b);
+      haxball.__internalData.execOperationReceivedOnHost(b) != false && a.ra(b);
     };
     this._Qp_ = function (start) {
-      if (start){
-        if (null != b.Ed)
-          return false;
+      if (start) {
+        if (null != b.Ed) return false;
         b.zr();
-        haxball.room._onRoomRecordingChange && haxball.room._onRoomRecordingChange(true);
+        haxball.room._onRoomRecordingChange &&
+          haxball.room._onRoomRecordingChange(true);
         return true;
-      }
-      else {
-        if (null == b.Ed)
-          return null;
+      } else {
+        if (null == b.Ed) return null;
         var a = b.Ed.stop();
         b.Ed = null;
-        haxball.room._onRoomRecordingChange && haxball.room._onRoomRecordingChange(a);
+        haxball.room._onRoomRecordingChange &&
+          haxball.room._onRoomRecordingChange(a);
         return a;
       }
     };
@@ -7871,8 +8035,17 @@ function abcHaxballAPI(window, config){
         return c.splice((Math.random() * c.length) | 0, 1)[0];
       }),
       e == d
-        ? 2 > f || (msg = S.la(b(), p.fa), (haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg)), msg = S.la(b(), p.xa), (haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg)))
-        : ((d = e > d ? p.fa : p.xa), msg = S.la(b(), d), (haxball.__internalData.execOperationReceivedOnHost(msg)!=false && a.ra(msg))));
+        ? 2 > f ||
+          ((msg = S.la(b(), p.fa)),
+          haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+            a.ra(msg),
+          (msg = S.la(b(), p.xa)),
+          haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+            a.ra(msg))
+        : ((d = e > d ? p.fa : p.xa),
+          (msg = S.la(b(), d)),
+          haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+            a.ra(msg)));
   };
   ba.prototype = {
     zr: function () {
@@ -7891,7 +8064,8 @@ function abcHaxballAPI(window, config){
       }
       for (a = 0; a < b.length; ) {
         var msg = b[a++];
-        this.haxball.__internalData.execOperationReceivedOnHost(msg)!=false && this.ya.ra(msg);
+        this.haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+          this.ya.ra(msg);
       }
     },
     bf: function () {
@@ -7902,35 +8076,46 @@ function abcHaxballAPI(window, config){
     },
     Kc: function () {
       var a = performance.now();
-      if (this.haxball.__internalData.storage.fps_limit == 1 && a - this.$c < 28.333333333333336)
+      if (
+        this.haxball.__internalData.storage.fps_limit == 1 &&
+        a - this.$c < 28.333333333333336
+      )
         return;
       this.$c = a;
       this.haxball.__internalData.extrapolatedRoomState = this.ya.Sf();
-      this.haxball.__internalData.renderer?.render(this.haxball.__internalData.extrapolatedRoomState);
+      this.haxball.__internalData.renderer?.render(
+        this.haxball.__internalData.extrapolatedRoomState
+      );
     },
     bm: function (a) {
       var msg;
-      a != this.Ik && (
-        msg = na.la(a ? 0 : 1),
-        (this.haxball.__internalData.execOperationReceivedOnHost(msg)!=false && (
-          this.ya.ra(msg), 
-          (this.Ik = a)
-        ))
-      );
+      a != this.Ik &&
+        ((msg = na.la(a ? 0 : 1)),
+        this.haxball.__internalData.execOperationReceivedOnHost(msg) != false &&
+          (this.ya.ra(msg), (this.Ik = a)));
     },
     Bm: function () {
       if (null != this.ya.T.K) {
         var a = new Oa();
         a.Bf = 120 != this.ya.T.K.Oa;
-        this.haxball.__internalData.execOperationReceivedOnHost(a)!=false && this.ya.ra(a);
+        this.haxball.__internalData.execOperationReceivedOnHost(a) != false &&
+          this.ya.ra(a);
       }
     },
     f: ba,
   };
-  
-  function roomLink(a, b) { // u.$h
-    return (config.backend.secure?"https":"http")+"://"+config.backend.hostname+"/play?c=" + a + (b ? "&p=1" : "");
-  };
+
+  function roomLink(a, b) {
+    // u.$h
+    return (
+      (config.backend.secure ? "https" : "http") +
+      "://" +
+      config.backend.hostname +
+      "/play?c=" +
+      a +
+      (b ? "&p=1" : "")
+    );
+  }
 
   // replay section :
 
@@ -7979,15 +8164,15 @@ function abcHaxballAPI(window, config){
     },
     f: ac,
   };
-  
+
   function Jb(a, b, c, callbacks) {
     this.Vk = [];
     this.pl = 0;
-    this.Fd = -1;// destination time
+    this.Fd = -1; // destination time
     this.hg = this.Qb = this.Wh = this.sk = 0;
     V.call(this, b);
     a = new F(new DataView(a.buffer), !1);
-    if (1212305970 != a.hb()) throw new q('');
+    if (1212305970 != a.hb()) throw new q("");
     b = a.hb();
     if (c != b) throw new q(new Kb(b));
     this.mf = a.hb();
@@ -7998,7 +8183,7 @@ function abcHaxballAPI(window, config){
     this.Lc = new F(new DataView(c.buffer, c.byteOffset, c.byteLength), !1);
     this.ui();
     this.Wh = performance.now();
-    this.uc = - 1;
+    this.uc = -1;
     this.callbacks = callbacks;
     this.parentVb = null;
     this.obj = null;
@@ -8010,74 +8195,71 @@ function abcHaxballAPI(window, config){
       for (var b = a.Ob(), c = 0, d = 0; d < b; ) {
         ++d;
         var c = c + a.Ab(),
-        e = a.B();
+          e = a.B();
         this.Vk.push({
           mj: c / this.mf,
-          kind: e
-        })
+          kind: e,
+        });
       }
     },
     Dl: function () {
       var a = this.Lc;
-      if (0 < a.o.byteLength - a.a){
+      if (0 < a.o.byteLength - a.a) {
         a = this.Lc.Ab();
         this.hg += a;
         a = this.Lc.Ob();
         this.gg = m.fh(this.Lc, true);
         this.gg.P = a;
-      } 
-      else 
-        this.gg = null;
+      } else this.gg = null;
     },
     Go: function () {
-      return this.Y / this.mf
+      return this.Y / this.mf;
     },
-    ra: function () {
-    },
+    ra: function () {},
     Sf: function () {
       this.C();
       ya.zc++;
       var a = this.T.sc();
       a.C(this.sk);
-      return a
+      return a;
     },
     C: function () {
       var a = performance.now(),
-      b = a - this.Wh;
+        b = a - this.Wh;
       this.Wh = a;
-      var reachedFd = false, reachedEnd = false;
-      if (this.Fd >= 0){
+      var reachedFd = false,
+        reachedEnd = false;
+      if (this.Fd >= 0) {
         this.Qb += 10000;
-        if (this.Qb > this.Fd){
+        if (this.Qb > this.Fd) {
           this.Qb = this.Fd;
-          this.Fd = - 1;
+          this.Fd = -1;
           reachedFd = true;
         }
-      }
-      else
-        this.Qb += b * this.pl;
+      } else this.Qb += b * this.pl;
       a = this.mf * this.mh;
-      if (this.Qb > a){
+      if (this.Qb > a) {
         this.Qb = a;
         reachedEnd = true;
       }
       b = this.Qb * this.Ac;
       a = b | 0;
       for (this.sk = b - a; this.Y < a; ) {
-        while (null != this.gg && this.hg == this.Y){
+        while (null != this.gg && this.hg == this.Y) {
           b = this.gg;
           b.apply(this.T);
           null != this.fc && this.fc(b);
           this.Dl();
         }
         this.Y++;
-        this.T.C(1)
+        this.T.C(1);
       }
-      if (reachedFd){
+      if (reachedFd) {
         this.parentVb.assignCallbacks();
-        this.obj?.onDestinationTimeReached && this.obj.onDestinationTimeReached();
+        this.obj?.onDestinationTimeReached &&
+          this.obj.onDestinationTimeReached();
       }
-      if (reachedEnd){
+      if (reachedEnd) {
         this.pl = 0;
         this.parentVb.clearCallbacks();
         this.obj?.onEnd && this.obj.onEnd();
@@ -8086,7 +8268,7 @@ function abcHaxballAPI(window, config){
     er: function (a) {
       this.parentVb.clearCallbacks();
       this.Fd = a;
-      a < this.Qb && this.ui()
+      a < this.Qb && this.ui();
     },
     ui: function () {
       this.hg = 0;
@@ -8094,7 +8276,7 @@ function abcHaxballAPI(window, config){
       this.T.ja(this.Lc);
       this.Dl();
     },
-    f: Jb
+    f: Jb,
   });
 
   function Vb(ya, callbacks, options) {
@@ -8105,13 +8287,13 @@ function abcHaxballAPI(window, config){
     var fps_limit = options?.fps_limit;
     var render = callbacks?.render;
 
-    var Kc = render && function () {
-      var a = performance.now();
-      null != fps_limit && fps_limit > a - $c || (
-        $c = a, 
-        0 < ya.Fd || render(ya.Sf())
-      )
-    };
+    var Kc =
+      render &&
+      function () {
+        var a = performance.now();
+        (null != fps_limit && fps_limit > a - $c) ||
+          (($c = a), 0 < ya.Fd || render(ya.Sf()));
+      };
     var bf = function () {
       De = raf(bf);
       ya.C();
@@ -8158,44 +8340,49 @@ function abcHaxballAPI(window, config){
       ya.T.wl = null;
     };
 
-    this.assignCallbacks = function(){
-      if (ya.T.iq!=null)
-        return;
-      ya.T.iq = (b)=>{
-        callbacks.onPlayerInputChange && callbacks.onPlayerInputChange(b.V, b.ob);
+    this.assignCallbacks = function () {
+      if (ya.T.iq != null) return;
+      ya.T.iq = (b) => {
+        callbacks.onPlayerInputChange &&
+          callbacks.onPlayerInputChange(b.V, b.ob);
       };
-      ya.T.tl = (b)=>{
+      ya.T.tl = (b) => {
         callbacks.onPlayerJoin && callbacks.onPlayerJoin(b); // V=id, w=name, Kd=flag, Xb=avatar, conn, auth
       };
-      ya.T.ji = (d)=>{
+      ya.T.ji = (d) => {
         callbacks.onPlayerBallKick && callbacks.onPlayerBallKick(d?.V);
       };
-      ya.T.Ni = (team)=>{
+      ya.T.Ni = (team) => {
         callbacks.onTeamGoal && callbacks.onTeamGoal(team?.$);
       };
-      ya.T.Oi = (team)=>{
+      ya.T.Oi = (team) => {
         callbacks.onGameEnd && callbacks.onGameEnd(team.$); // winningTeamId
       };
-      ya.T.ml = (c, Bf, e)=>{
-        (!e) && callbacks.onGamePauseChange && callbacks.onGamePauseChange(Bf, c?.V) // paused, byId
+      ya.T.ml = (c, Bf, e) => {
+        !e &&
+          callbacks.onGamePauseChange &&
+          callbacks.onGamePauseChange(Bf, c?.V); // paused, byId
       };
-      ya.T.Ki = function(a){
+      ya.T.Ki = function (a) {
         callbacks.onGameStart && callbacks.onGameStart(a?.V); // byId
-      }
-      ya.T.Os = ()=>{
+      };
+      ya.T.Os = () => {
         callbacks.onGameTick && callbacks.onGameTick();
       };
-      ya.T._KO_ = ()=>{
+      ya.T._KO_ = () => {
         callbacks.onKickOff && callbacks.onKickOff();
       };
-      ya.T._CDD_ = (a, b, c, d)=>{
-        callbacks.onCollisionDiscVsDisc && callbacks.onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
+      ya.T._CDD_ = (a, b, c, d) => {
+        callbacks.onCollisionDiscVsDisc &&
+          callbacks.onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
       };
-      ya.T._CDP_ = (a, b, c)=>{
-        callbacks.onCollisionDiscVsPlane && callbacks.onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
+      ya.T._CDP_ = (a, b, c) => {
+        callbacks.onCollisionDiscVsPlane &&
+          callbacks.onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
       };
-      ya.T._CDS_ = (a, b, c)=>{
-        callbacks.onCollisionDiscVsSegment && callbacks.onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
+      ya.T._CDS_ = (a, b, c) => {
+        callbacks.onCollisionDiscVsSegment &&
+          callbacks.onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
       };
       ya.T._AT_ = (a, b, c, d, e) => {
         callbacks.onAutoTeams && callbacks.onAutoTeams(a, b, c, d, e);
@@ -8210,10 +8397,12 @@ function abcHaxballAPI(window, config){
         callbacks.onPlayerAvatarChange && callbacks.onPlayerAvatarChange(a, b);
       };
       ya.T._PHAC_ = (a, b) => {
-        callbacks.onPlayerHeadlessAvatarChange && callbacks.onPlayerHeadlessAvatarChange(a, b);
+        callbacks.onPlayerHeadlessAvatarChange &&
+          callbacks.onPlayerHeadlessAvatarChange(a, b);
       };
       ya.T._RP_ = (a, b) => {
-        haxball.room._onPlayersOrderChange && haxball.room._onPlayersOrderChange(a, b);
+        haxball.room._onPlayersOrderChange &&
+          haxball.room._onPlayersOrderChange(a, b);
       };
       ya.T._PTC_ = (a, b, c) => {
         callbacks.onPlayerTeamChange && callbacks.onPlayerTeamChange(a, b, c);
@@ -8224,53 +8413,59 @@ function abcHaxballAPI(window, config){
       ya.T._TLC2_ = (a, b) => {
         callbacks.onTeamsLockChange && callbacks.onTeamsLockChange(a, b);
       };
-      ya.T._CE_ = (a, b, c)=>{
+      ya.T._CE_ = (a, b, c) => {
         callbacks.onCustomEvent && callbacks.onCustomEvent(a, b, c); // type, data, byUser
       };
-      ya.T._SDP_ = (a, b, c, d)=>{
-        callbacks.onSetDiscProperties && callbacks.onSetDiscProperties(a, b, c, d); // id, type, data1, data2
+      ya.T._SDP_ = (a, b, c, d) => {
+        callbacks.onSetDiscProperties &&
+          callbacks.onSetDiscProperties(a, b, c, d); // id, type, data1, data2
       };
-      ya.T._PD_ = (a)=>{
+      ya.T._PD_ = (a) => {
         callbacks.onPingData && callbacks.onPingData(a); // ping array
       };
-      ya.T._HC_ = (a)=>{
+      ya.T._HC_ = (a) => {
         callbacks.onHandicapChange && callbacks.onHandicapChange(a);
       };
-      ya.T._EC_ = (a)=>{
+      ya.T._EC_ = (a) => {
         callbacks.onExtrapolationChange && callbacks.onExtrapolationChange(a);
       };
-      ya.T.Pi = ()=>{
+      ya.T.Pi = () => {
         callbacks.onTimeIsUp && callbacks.onTimeIsUp();
       };
-      ya.T.lq = ()=>{
+      ya.T.lq = () => {
         callbacks.onPositionsReset && callbacks.onPositionsReset();
       };
-      ya.T.rl = function(b, Tc){
+      ya.T.rl = function (b, Tc) {
         callbacks.onPlayerChat && callbacks.onPlayerChat(b.V, Tc); // id, message
       };
-      ya.T.Vl = function(msg, color, style, sound){
-        callbacks.onAnnouncement && callbacks.onAnnouncement(msg, color, style, sound); // msg, color, style, sound
+      ya.T.Vl = function (msg, color, style, sound) {
+        callbacks.onAnnouncement &&
+          callbacks.onAnnouncement(msg, color, style, sound); // msg, color, style, sound
       };
-      ya.T.vf = function(b){
-        callbacks.onGameStop && callbacks.onGameStop(b?.V);  //byId
+      ya.T.vf = function (b) {
+        callbacks.onGameStop && callbacks.onGameStop(b?.V); //byId
       };
-      ya.T.Ii = function(a, e){
+      ya.T.Ii = function (a, e) {
         callbacks.onStadiumChange && callbacks.onStadiumChange(e, a?.V); // map, byId
       };
-      ya.T.sl = function(b){
-        callbacks.onPlayerSyncChange && callbacks.onPlayerSyncChange(b?.V, b?.Ld);// id, sync
+      ya.T.sl = function (b) {
+        callbacks.onPlayerSyncChange &&
+          callbacks.onPlayerSyncChange(b?.V, b?.Ld); // id, sync
       };
-      ya.T.ii = function(b, c){
-        callbacks.onPlayerAdminChange && callbacks.onPlayerAdminChange(c?.V, c?.cb, b?.V)// id, isAdmin, byId
+      ya.T.ii = function (b, c) {
+        callbacks.onPlayerAdminChange &&
+          callbacks.onPlayerAdminChange(c?.V, c?.cb, b?.V); // id, isAdmin, byId
       };
-      ya.T.Hk = function(a, b, c, d){
-        callbacks.onKickRateLimitChange && callbacks.onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
+      ya.T.Hk = function (a, b, c, d) {
+        callbacks.onKickRateLimitChange &&
+          callbacks.onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
       };
       ya.T.ul = function (d, e, f, g) {
         callbacks.onPlayerLeave && callbacks.onPlayerLeave(d, e, f, g?.V); // playerObj, reason, isBanned, byId
       };
-      ya.T.wl = function(a, b){
-        callbacks.onPlayerChatIndicatorChange && callbacks.onPlayerChatIndicatorChange(a?.V, !b); // id, value
+      ya.T.wl = function (a, b) {
+        callbacks.onPlayerChatIndicatorChange &&
+          callbacks.onPlayerChatIndicatorChange(a?.V, !b); // id, value
       };
     };
 
@@ -8279,7 +8474,7 @@ function abcHaxballAPI(window, config){
       this.clearCallbacks();
     };
 
-    this.ui = ()=>{
+    this.ui = () => {
       ya.ui();
     };
   }
@@ -8301,39 +8496,38 @@ function abcHaxballAPI(window, config){
     C: function () {
       var arr = this.events;
       this.events = [];
-      var a = (((performance.now() - this.Li) * this.Ac * this.speed) | 0) - this.Y;
-      for (var i=0;i<a;i++){
-        this.Y+=1;
-        if (!this.frozen){
+      var a =
+        (((performance.now() - this.Li) * this.Ac * this.speed) | 0) - this.Y;
+      for (var i = 0; i < a; i++) {
+        this.Y += 1;
+        if (!this.frozen) {
           this.T.C(1);
           // events should normally run inside this loop,
           // but since we are not dealing with network and
           // synchronization, we can do whatever we want here.
         }
       }
-      arr.forEach((event)=>{
+      arr.forEach((event) => {
         event.apply(this.T);
       });
     },
-    receiveEvent: function(event){
+    receiveEvent: function (event) {
       this.events.push(event);
     },
-    setSpeed: function(speedCoeff){
-      if (speedCoeff<0)
-        return;
-      if (speedCoeff==0){
+    setSpeed: function (speedCoeff) {
+      if (speedCoeff < 0) return;
+      if (speedCoeff == 0) {
         this.frozen = true;
         return;
       }
-      this.Y = (this.Y * speedCoeff / this.speed) | 0;
+      this.Y = ((this.Y * speedCoeff) / this.speed) | 0;
       this.speed = speedCoeff;
       this.frozen = false;
     },
-    runSteps: function(count){
-      if (!this.frozen)
-        return;
+    runSteps: function (count) {
+      if (!this.frozen) return;
       this.T.C(count);
-    }
+    },
   });
 
   function Sandbox(ya, callbacks, options) {
@@ -8343,55 +8537,67 @@ function abcHaxballAPI(window, config){
     var caf = options?.cancelAnimationFrame || cancelAnimationFrame;
     var fps_limit = options?.fps_limit;
     var render = callbacks?.render;
-    var Kc = render && function () {
-      var a = performance.now();
-      null != fps_limit && fps_limit > a - $c || (
-        $c = a, 
-        render(ya.Sf())
-      )
-    };
+    var Kc =
+      render &&
+      function () {
+        var a = performance.now();
+        (null != fps_limit && fps_limit > a - $c) ||
+          (($c = a), render(ya.Sf()));
+      };
     var bf = function () {
       De = raf(bf);
       ya.C();
       render && Kc();
     };
-    function initialize(){
+    function initialize() {
       raf(bf);
-      ya.T.iq = (b)=>{
-        callbacks.onPlayerInputChange && callbacks.onPlayerInputChange(b.V, b.ob);
+      ya.T.iq = (b) => {
+        callbacks.onPlayerInputChange &&
+          callbacks.onPlayerInputChange(b.V, b.ob);
       };
-      ya.T.tl = (b)=>{ // +
+      ya.T.tl = (b) => {
+        // +
         callbacks.onPlayerJoin && callbacks.onPlayerJoin(b); // V=id, w=name, Kd=flag, Xb=avatar, conn, auth
       };
-      ya.T.ji = (d)=>{ // +
+      ya.T.ji = (d) => {
+        // +
         callbacks.onPlayerBallKick && callbacks.onPlayerBallKick(d?.V);
       };
-      ya.T.Ni = (team)=>{ // +
+      ya.T.Ni = (team) => {
+        // +
         callbacks.onTeamGoal && callbacks.onTeamGoal(team?.$);
       };
-      ya.T.Oi = (team)=>{ // +
+      ya.T.Oi = (team) => {
+        // +
         callbacks.onGameEnd && callbacks.onGameEnd(team.$); // winningTeamId
       };
-      ya.T.ml = (c, Bf, e)=>{ // +
-        (!e) && callbacks.onGamePauseChange && callbacks.onGamePauseChange(Bf, c?.V) // paused, byId
+      ya.T.ml = (c, Bf, e) => {
+        // +
+        !e &&
+          callbacks.onGamePauseChange &&
+          callbacks.onGamePauseChange(Bf, c?.V); // paused, byId
       };
-      ya.T.Ki = function(a){ // +
+      ya.T.Ki = function (a) {
+        // +
         callbacks.onGameStart && callbacks.onGameStart(a?.V); // byId
-      }
-      ya.T.Os = ()=>{
+      };
+      ya.T.Os = () => {
         callbacks.onGameTick && callbacks.onGameTick();
       };
-      ya.T._KO_ = ()=>{
+      ya.T._KO_ = () => {
         callbacks.onKickOff && callbacks.onKickOff();
       };
-      ya.T._CDD_ = (a, b, c, d)=>{
-        callbacks.onCollisionDiscVsDisc && callbacks.onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
+      ya.T._CDD_ = (a, b, c, d) => {
+        callbacks.onCollisionDiscVsDisc &&
+          callbacks.onCollisionDiscVsDisc(a, b, c, d); // discId1, discPlayerId1, discId2, discPlayerId2
       };
-      ya.T._CDP_ = (a, b, c)=>{
-        callbacks.onCollisionDiscVsPlane && callbacks.onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
+      ya.T._CDP_ = (a, b, c) => {
+        callbacks.onCollisionDiscVsPlane &&
+          callbacks.onCollisionDiscVsPlane(a, b, c); // discId, discPlayerId, planeId
       };
-      ya.T._CDS_ = (a, b, c)=>{
-        callbacks.onCollisionDiscVsSegment && callbacks.onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
+      ya.T._CDS_ = (a, b, c) => {
+        callbacks.onCollisionDiscVsSegment &&
+          callbacks.onCollisionDiscVsSegment(a, b, c); // discId, discPlayerId, segmentId
       };
       ya.T._AT_ = (a, b, c, d, e) => {
         callbacks.onAutoTeams && callbacks.onAutoTeams(a, b, c, d, e);
@@ -8406,12 +8612,15 @@ function abcHaxballAPI(window, config){
         callbacks.onPlayerAvatarChange && callbacks.onPlayerAvatarChange(a, b);
       };
       ya.T._PHAC_ = (a, b) => {
-        callbacks.onPlayerHeadlessAvatarChange && callbacks.onPlayerHeadlessAvatarChange(a, b);
+        callbacks.onPlayerHeadlessAvatarChange &&
+          callbacks.onPlayerHeadlessAvatarChange(a, b);
       };
       ya.T._RP_ = (a, b) => {
-        haxball.room._onPlayersOrderChange && haxball.room._onPlayersOrderChange(a, b);
+        haxball.room._onPlayersOrderChange &&
+          haxball.room._onPlayersOrderChange(a, b);
       };
-      ya.T._PTC_ = (a, b, c) => { // + (xl)
+      ya.T._PTC_ = (a, b, c) => {
+        // + (xl)
         callbacks.onPlayerTeamChange && callbacks.onPlayerTeamChange(a, b, c);
       };
       ya.T._TCC_ = (a, b, c) => {
@@ -8420,56 +8629,72 @@ function abcHaxballAPI(window, config){
       ya.T._TLC2_ = (a, b) => {
         callbacks.onTeamsLockChange && callbacks.onTeamsLockChange(a, b);
       };
-      ya.T._CE_ = (a, b, c)=>{
+      ya.T._CE_ = (a, b, c) => {
         callbacks.onCustomEvent && callbacks.onCustomEvent(a, b, c); // type, data, byUser
       };
-      ya.T._SDP_ = (a, b, c, d)=>{
-        callbacks.onSetDiscProperties && callbacks.onSetDiscProperties(a, b, c, d); // id, type, data1, data2
+      ya.T._SDP_ = (a, b, c, d) => {
+        callbacks.onSetDiscProperties &&
+          callbacks.onSetDiscProperties(a, b, c, d); // id, type, data1, data2
       };
-      ya.T._PD_ = (a)=>{
+      ya.T._PD_ = (a) => {
         callbacks.onPingData && callbacks.onPingData(a); // ping array
       };
-      ya.T._HC_ = (a)=>{
+      ya.T._HC_ = (a) => {
         callbacks.onHandicapChange && callbacks.onHandicapChange(a);
       };
-      ya.T._EC_ = (a)=>{
+      ya.T._EC_ = (a) => {
         callbacks.onExtrapolationChange && callbacks.onExtrapolationChange(a);
       };
-      ya.T.Pi = ()=>{ // +
+      ya.T.Pi = () => {
+        // +
         callbacks.onTimeIsUp && callbacks.onTimeIsUp();
       };
-      ya.T.lq = ()=>{
+      ya.T.lq = () => {
         callbacks.onPositionsReset && callbacks.onPositionsReset();
       };
-      ya.T.rl = function(b, Tc){ // +
+      ya.T.rl = function (b, Tc) {
+        // +
         callbacks.onPlayerChat && callbacks.onPlayerChat(b.V, Tc); // id, message
       };
-      ya.T.Vl = function(msg, color, style, sound){ // +
-        callbacks.onAnnouncement && callbacks.onAnnouncement(msg, color, style, sound); // msg, color, style, sound
+      ya.T.Vl = function (msg, color, style, sound) {
+        // +
+        callbacks.onAnnouncement &&
+          callbacks.onAnnouncement(msg, color, style, sound); // msg, color, style, sound
       };
-      ya.T.vf = function(b){ // +
-        callbacks.onGameStop && callbacks.onGameStop(b?.V);  //byId
+      ya.T.vf = function (b) {
+        // +
+        callbacks.onGameStop && callbacks.onGameStop(b?.V); //byId
       };
-      ya.T.Ii = function(a, e){ // +
+      ya.T.Ii = function (a, e) {
+        // +
         callbacks.onStadiumChange && callbacks.onStadiumChange(e, a?.V); // map, byId
       };
-      ya.T.sl = function(b){ // +
-        callbacks.onPlayerSyncChange && callbacks.onPlayerSyncChange(b?.V, b?.Ld);// id, sync
+      ya.T.sl = function (b) {
+        // +
+        callbacks.onPlayerSyncChange &&
+          callbacks.onPlayerSyncChange(b?.V, b?.Ld); // id, sync
       };
-      ya.T.ii = function(b, c){ // +
-        callbacks.onPlayerAdminChange && callbacks.onPlayerAdminChange(c?.V, c?.cb, b?.V)// id, isAdmin, byId
+      ya.T.ii = function (b, c) {
+        // +
+        callbacks.onPlayerAdminChange &&
+          callbacks.onPlayerAdminChange(c?.V, c?.cb, b?.V); // id, isAdmin, byId
       };
-      ya.T.Hk = function(a, b, c, d){ // +
-        callbacks.onKickRateLimitChange && callbacks.onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
+      ya.T.Hk = function (a, b, c, d) {
+        // +
+        callbacks.onKickRateLimitChange &&
+          callbacks.onKickRateLimitChange(b, c, d, a?.V); // min, rate, burst, byId
       };
-      ya.T.ul = function (d, e, f, g) { // +
+      ya.T.ul = function (d, e, f, g) {
+        // +
         callbacks.onPlayerLeave && callbacks.onPlayerLeave(d, e, f, g?.V); // playerObj, reason, isBanned, byId
       };
-      ya.T.wl = function(a, b){ // +
-        callbacks.onPlayerChatIndicatorChange && callbacks.onPlayerChatIndicatorChange(a?.V, !b); // id, value
+      ya.T.wl = function (a, b) {
+        // +
+        callbacks.onPlayerChatIndicatorChange &&
+          callbacks.onPlayerChatIndicatorChange(a?.V, !b); // id, value
       };
-    };
-    function finalize(){
+    }
+    function finalize() {
       caf(De);
       ya.T.iq = null;
       ya.T.tl = null;
@@ -8516,206 +8741,213 @@ function abcHaxballAPI(window, config){
       finalize();
     };
 
-    this.setRoomStateObj = function(roomState){
+    this.setRoomStateObj = function (roomState) {
       finalize();
       ya.T = roomState;
       initialize();
     };
   }
 
-  function createSandbox(callbacks, options){
-    var roomState = new fa(), room = new SandboxRoom(roomState), sandbox = new Sandbox(room, callbacks, options), obj;
+  function createSandbox(callbacks, options) {
+    var roomState = new fa(),
+      room = new SandboxRoom(roomState),
+      sandbox = new Sandbox(room, callbacks, options),
+      obj;
     obj = {
       state: roomState,
-      takeSnapshot: function(){
+      takeSnapshot: function () {
         return roomState.copy();
       },
-      useSnapshot: function(newRoomState){
+      useSnapshot: function (newRoomState) {
         var state = newRoomState.copy();
         sandbox.setRoomStateObj(state);
         roomState = state;
         obj.state = state;
       },
-      playerJoin: function(id, name, flag, avatar, conn, auth){
+      playerJoin: function (id, name, flag, avatar, conn, auth) {
         var b = oa.la(id, name, flag, avatar, conn, auth);
         b.P = 0;
         room.receiveEvent(b);
       },
-      playerLeave: function(playerId){
+      playerLeave: function (playerId) {
         var playerObj = room.T.na(playerId);
-        if (!playerObj)
-          return;
+        if (!playerObj) return;
         var b = Y.la(playerId, null, true);
         b.P = 0;
         room.receiveEvent(b);
       },
-      playerInput: function(input, byId){
+      playerInput: function (input, byId) {
         var b = new Ga();
         b.input = input;
         b.P = byId;
         room.receiveEvent(b);
       },
-      playerChat: function(msg, byId){
+      playerChat: function (msg, byId) {
         var b = new Na();
         b.Tc = msg;
         b.P = byId;
         room.receiveEvent(b);
       },
-      setKeyState: function(keyState){
+      setKeyState: function (keyState) {
         obj.playerInput(keyState, options?.controlledPlayerId || 0);
       },
-      setPlayerChatIndicator: function(value, byId){
+      setPlayerChatIndicator: function (value, byId) {
         var b = na.la(value);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setPlayerAvatar: function(headless, value, byId){
-        if (headless){
+      setPlayerAvatar: function (headless, value, byId) {
+        if (headless) {
           var msg = qb.la(byId, value);
           msg.P = 0;
-        }
-        else{
+        } else {
           var b = ra.la(value);
           b.P = byId;
         }
         room.receiveEvent(b);
       },
-      setCurrentStadium: function(value, byId, onError){
+      setCurrentStadium: function (value, byId, onError) {
         try {
           var b = qa.la(value);
           b.P = byId;
           room.receiveEvent(b);
         } catch (k) {
-          b = k instanceof q ? k.Ta : k,
-          b instanceof SyntaxError ? onError(createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)) :  // "SyntaxError in line: " + r.Be(b.lineNumber, "")
-          b instanceof Bb ? onError(b.xp) : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
+          (b = k instanceof q ? k.Ta : k),
+            b instanceof SyntaxError
+              ? onError(
+                  createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)
+                ) // "SyntaxError in line: " + r.Be(b.lineNumber, "")
+              : b instanceof Bb
+              ? onError(b.xp)
+              : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
         }
       },
-      sendAnnouncement: function(msg, color=-1, style=0, sound=1, targetId, byId){
+      sendAnnouncement: function (
+        msg,
+        color = -1,
+        style = 0,
+        sound = 1,
+        targetId,
+        byId
+      ) {
         var b = rb.la(msg, color, style, sound);
         b.P = byId;
         room.receiveEvent(b);
       },
-      startGame: function(byId){
+      startGame: function (byId) {
         var b = new Ma();
         b.P = byId;
         room.receiveEvent(b);
       },
-      stopGame: function(byId){
+      stopGame: function (byId) {
         var b = new La();
         b.P = byId;
         room.receiveEvent(b);
       },
-      setGamePaused: function(value, byId){
+      setGamePaused: function (value, byId) {
         var b = new Oa();
         b.Bf = value;
         b.P = byId;
         room.receiveEvent(b);
       },
-      setScoreLimit: function(value, byId){
+      setScoreLimit: function (value, byId) {
         var b = da.la(0, value);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setTimeLimit: function(value, byId){
+      setTimeLimit: function (value, byId) {
         var b = da.la(1, value);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setTeamsLock: function(value, byId){
+      setTeamsLock: function (value, byId) {
         var b = pa.la(value);
         b.P = byId;
         room.receiveEvent(b);
       },
-      autoTeams: function(byId){
+      autoTeams: function (byId) {
         var b = new Qa();
         b.P = byId;
         room.receiveEvent(b);
       },
-      setPlayerTeam: function(playerId, teamId, byId){
+      setPlayerTeam: function (playerId, teamId, byId) {
         var team = p.byId[teamId];
-        if (!team)
-          return;
+        if (!team) return;
         var b = S.la(playerId, team);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setKickRateLimit: function(min, rate, burst, byId){
+      setKickRateLimit: function (min, rate, burst, byId) {
         var b = ma.la(min, rate, burst);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setTeamColors: function(teamId, angle, colors, byId){
+      setTeamColors: function (teamId, angle, colors, byId) {
         var b = ub.__cq__(teamId, angle, ...colors);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setPlayerAdmin: function(playerId, value, byId){
+      setPlayerAdmin: function (playerId, value, byId) {
         var b = sa.la(playerId, value);
         b.P = byId;
         room.receiveEvent(b);
       },
-      kickPlayer: function(playerId, reason, ban, byId){
+      kickPlayer: function (playerId, reason, ban, byId) {
         var b = Y.la(playerId, reason, ban);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setPlayerSync: function(value, byId){
+      setPlayerSync: function (value, byId) {
         var b = ta.la(value);
         b.P = byId;
         room.receiveEvent(b);
-      }, 
-      sendPingData: function(valueFunc, byId){
-        var b = new la(), d = [];
-        for (var e=0; e<room.T.I.length; e++)
+      },
+      sendPingData: function (valueFunc, byId) {
+        var b = new la(),
+          d = [];
+        for (var e = 0; e < room.T.I.length; e++)
           d.push(valueFunc(room.T.I[e]));
         b.we = d;
         b.P = byId;
         room.receiveEvent(b);
       },
-      setDiscProperties: function(discId, type, data, byId){
+      setDiscProperties: function (discId, type, data, byId) {
         var b = ob._Kf_(discId, type, data);
         b.P = byId;
         room.receiveEvent(b);
       },
-      sendCustomEvent: function(type, data, byId){
+      sendCustomEvent: function (type, data, byId) {
         var b = CustomEvent.la(type, data);
         b.P = byId;
         room.receiveEvent(b);
       },
-      setSimulationSpeed: function(speedCoeff){
+      setSimulationSpeed: function (speedCoeff) {
         room.setSpeed(speedCoeff);
       },
-      runSteps: function(count){
+      runSteps: function (count) {
         room.runSteps(count);
       },
-      destroy: sandbox.ia
+      destroy: sandbox.ia,
     };
     Object.defineProperty(obj, "gameState", {
-      get(){
+      get() {
         return obj.state.K;
-      }
+      },
     });
     Object.defineProperty(obj, "currentPlayerId", {
-      get(){
+      get() {
         return 0;
-      }
+      },
     });
     return obj;
   }
-  
-
-
-
 
   // -- end of global Haxball classes --
 
-
-
-
-
-  function readReplay(uint8Array, callbacks, options){
-    var b, jb, roomState = new fa;
+  function readReplay(uint8Array, callbacks, options) {
+    var b,
+      jb,
+      roomState = new fa();
     try {
       jb = new Jb(uint8Array, roomState, 3, callbacks);
       b = new Vb(jb, callbacks, options);
@@ -8723,89 +8955,94 @@ function abcHaxballAPI(window, config){
     } catch (e) {
       var c = e instanceof q ? e.Ta : e;
       if (c instanceof Kb)
-        throw createError(ErrorCodes.ReplayFileVersionMismatchError); // "The replay data is of a different version"
-      else
-        throw createError(ErrorCodes.ReplayFileReadError); // "Couldn't load replay data."
+        throw createError(ErrorCodes.ReplayFileVersionMismatchError);
+      // "The replay data is of a different version"
+      else throw createError(ErrorCodes.ReplayFileReadError); // "Couldn't load replay data."
     }
     var obj = {
       state: roomState,
-      getSpeed: ()=>{
+      getSpeed: () => {
         return jb.pl;
       },
-      setSpeed: (coefficient)=>{ // fastmo: coefficient>1, normal: coefficient=1, slowmo: 0<coefficient<1, stop: coefficient=0
+      setSpeed: (coefficient) => {
+        // fastmo: coefficient>1, normal: coefficient=1, slowmo: 0<coefficient<1, stop: coefficient=0
         b.assignCallbacks();
         jb.pl = coefficient;
       },
-      getTime: ()=>{ // get current time in msecs.
+      getTime: () => {
+        // get current time in msecs.
         return jb.Qb;
       },
-      length: ()=>{ // get the total length of replay data in msecs.
+      length: () => {
+        // get the total length of replay data in msecs.
         return jb.mh * jb.mf;
       },
-      setTime: (destinationTime)=>{ // jump to destinationTime in msecs.
+      setTime: (destinationTime) => {
+        // jump to destinationTime in msecs.
         jb.er(destinationTime);
         //c.Wf || (c.Wf = !0, c.Vp(), c.el())
       },
-      destroy: ()=>{
+      destroy: () => {
         b.ia();
-      }
+      },
     };
     Object.defineProperty(obj, "gameState", {
-      get(){
+      get() {
         return obj.state.K;
-      }
+      },
     });
     Object.defineProperty(obj, "currentPlayerId", {
-      get(){
+      get() {
         return jb.uc;
-      }
+      },
     });
     jb.obj = obj;
     return obj;
   }
 
-  function fixStorage(options){
+  function fixStorage(options) {
     var storage = options?.storage;
-    (!storage) && (storage = options.storage = {});
-    storage.setValue = (key, value)=>{
+    !storage && (storage = options.storage = {});
+    storage.setValue = (key, value) => {
       storage[key] = value;
       ia.i(storage["onValueSet"], key, value);
     };
-    var newVal = storage.crappy_router||false;
-    if (newVal!=storage.crappy_router)
+    var newVal = storage.crappy_router || false;
+    if (newVal != storage.crappy_router)
       storage.setValue("crappy_router", newVal);
-    newVal = storage.extrapolation||0;
-    if (newVal!=storage.extrapolation)
+    newVal = storage.extrapolation || 0;
+    if (newVal != storage.extrapolation)
       storage.setValue("extrapolation", newVal);
-    newVal = storage.fps_limit||0;
-    if (newVal!=storage.fps_limit)
-      storage.setValue("fps_limit", newVal);
-    newVal = storage.player_name||"abc";
-    if (newVal!=storage.player_name)
-      storage.setValue("player_name", newVal);
-    newVal = storage.avatar||null;
-    if (newVal!=storage.avatar)
-      storage.setValue("avatar", newVal);
+    newVal = storage.fps_limit || 0;
+    if (newVal != storage.fps_limit) storage.setValue("fps_limit", newVal);
+    newVal = storage.player_name || "abc";
+    if (newVal != storage.player_name) storage.setValue("player_name", newVal);
+    newVal = storage.avatar || null;
+    if (newVal != storage.avatar) storage.setValue("avatar", newVal);
     if (!storage.geo)
       storage.setValue("geo", {
-        "lat": 40,
-        "lon": 40,
-        "flag": "tr"
+        lat: 40,
+        lon: 40,
+        flag: "tr",
       });
-    else{
+    else {
       var oldVal = storage.geo;
       newVal = {
         lat: oldVal.lat || 40,
         lon: oldVal.lon || 40,
-        flag: oldVal.flag || "tr"
+        flag: oldVal.flag || "tr",
       };
-      if (oldVal.lat!=newVal.lat || oldVal.lon!=newVal.lon || oldVal.flag!=newVal.flag)
+      if (
+        oldVal.lat != newVal.lat ||
+        oldVal.lon != newVal.lon ||
+        oldVal.flag != newVal.flag
+      )
         storage.setValue("geo", newVal);
     }
   }
 
-  function createInternalData(haxball){
-    var internalData = haxball.__internalData = {
+  function createInternalData(haxball) {
+    var internalData = (haxball.__internalData = {
       customClientIds: new Set(), // store for all client ids that are using our modified client.
       roomObj: null,
       extrapolatedRoomState: null,
@@ -8818,53 +9055,55 @@ function abcHaxballAPI(window, config){
       renderer: haxball.renderer,
       storage: haxball.storage,
       pluginMechanismActive: !haxball.noPluginMechanism,
-      onOperationReceived: function(msg, globalFrameNo, clientFrameNo) {
-        if (!haxball.room._onOperationReceived)
-          return true;
+      onOperationReceived: function (msg, globalFrameNo, clientFrameNo) {
+        if (!haxball.room._onOperationReceived) return true;
         var c = msg.eventType;
-        if (c==null)
-          return true;
-        return haxball.room._onOperationReceived(c, msg, globalFrameNo, clientFrameNo);
+        if (c == null) return true;
+        return haxball.room._onOperationReceived(
+          c,
+          msg,
+          globalFrameNo,
+          clientFrameNo
+        );
       },
-      execOperationReceivedOnHost: function(msg, targetId, fakeId) {
-        if (!internalData.isHost)
-          return;
+      execOperationReceivedOnHost: function (msg, targetId, fakeId) {
+        if (!internalData.isHost) return;
         msg.P = fakeId || 0;
         msg._TP = targetId; // this can not be modified
         return internalData.onOperationReceived(msg);
-      }
-    };
+      },
+    });
     haxball.__internalData = internalData;
     return internalData;
   }
 
-  function joinRoom(roomParams, haxballParams) { 
-    var {id, password, token, authObj} = roomParams;
-    if (!id || !authObj)
-      throw createError(ErrorCodes.JoinRoomNullIdAuthError); // "id and authObj cannot be null. (inside 1st parameter)"
+  function joinRoom(roomParams, haxballParams) {
+    var { id, password, token, authObj } = roomParams;
+    if (!id || !authObj) throw createError(ErrorCodes.JoinRoomNullIdAuthError); // "id and authObj cannot be null. (inside 1st parameter)"
     var haxball = Object.assign({}, haxballParams);
     haxball.libraries = haxball.libraries || [];
     haxball.config = haxball.config || {};
     fixStorage(haxball);
-    (password == "") && (password = null);
-    (haxball.version == null) && (haxball.version = defaultVersion);
+    password == "" && (password = null);
+    haxball.version == null && (haxball.version = defaultVersion);
     var internalData = createInternalData(haxball);
-    var fLeaveRoom = function(x){
+    var fLeaveRoom = function (x) {
       console.log("internal event: LeaveRoom", x);
       removeRoomFromList(haxball.room);
       haxball._onConnectionStateChange = null;
       fLeaveRoom = null;
-      haxball.plugins && (haxball.plugins.forEach((p)=>{
-        A.i(p.finalize);
-        p.room = null;
-      }));
-      if (haxball.renderer){
+      haxball.plugins &&
+        haxball.plugins.forEach((p) => {
+          A.i(p.finalize);
+          p.room = null;
+        });
+      if (haxball.renderer) {
         A.i(haxball.renderer.finalize);
         haxball.renderer.room = null;
       }
       A.i(haxball.config.finalize);
       haxball.config.room = null;
-      haxball.libraries.forEach((l)=>{
+      haxball.libraries.forEach((l) => {
         A.i(l.finalize);
         l.room = null;
       });
@@ -8876,27 +9115,31 @@ function abcHaxballAPI(window, config){
       haxball.room = null;
       y.i(haxball.onLeave, x);
     };
-    var fJoinRoomSucceeded = function(){
+    var fJoinRoomSucceeded = function () {
       console.log("internal event: JoinRoomSucceeded");
       //haxball._onRoomLeave = null;
       haxball._onConnectionStateChange = null;
       fJoinRoomSucceeded = null;
-      haxball.room = new Room(internalData, haxball.libraries, haxball.config, haxball.plugins);
+      haxball.room = new Room(
+        internalData,
+        haxball.libraries,
+        haxball.config,
+        haxball.plugins
+      );
       allRooms.push(haxball.room);
       haxball.room.client = haxball;
       haxball.room.kickTimeout = haxball.kickTimeout || -1;
       //haxball.emit("roomJoin", haxball.room);
       y.i(haxball.onSuccess, haxball.room);
-      haxball.room._onPlayerObjectCreated && (
-        internalData.roomObj.ya.T.I.forEach((x)=>{
+      haxball.room._onPlayerObjectCreated &&
+        internalData.roomObj.ya.T.I.forEach((x) => {
           haxball.room._onPlayerObjectCreated(x);
-        })
-      );
+        });
     };
-    haxball._onConnectionStateChange = function(state){
+    haxball._onConnectionStateChange = function (state) {
       console.log("internal event: ConnectionStateChange");
       y.i(haxball.onConnectionStateChange, state);
-      if (state==4){
+      if (state == 4) {
         //haxball._onRoomLeave = null;
         haxball._onConnectionStateChange = null;
         fJoinRoomSucceeded = null;
@@ -8905,12 +9148,12 @@ function abcHaxballAPI(window, config){
     };
     haxball._onRoomLeave = fLeaveRoom;
     try {
-      var d = haxball.storage.crappy_router,//u.Bo(),
+      var d = haxball.storage.crappy_router, //u.Bo(),
         e = new fa(),
         f = w.ha();
-      f.mc(haxball.storage.player_name);//n_A.fe.L()
-      f.mc(haxball.storage.geo.flag);//n_A.Lh().ub
-      f.Db(haxball.storage.avatar);//n_A.sh.L()
+      f.mc(haxball.storage.player_name); //n_A.fe.L()
+      f.mc(haxball.storage.geo.flag); //n_A.Lh().ub
+      f.Db(haxball.storage.avatar); //n_A.sh.L()
       var g = n.Vf,
         k = n.Vr,
         l = f.Kg(),
@@ -8923,11 +9166,11 @@ function abcHaxballAPI(window, config){
           password: password,
           cn: d,
           gn: token,
-          ds: authObj
+          ds: authObj,
         });
       console.log("Connecting to master...");
-      
-      haxball.cancel = function(){
+
+      haxball.cancel = function () {
         t.Ad = null;
         t.df = null;
         t.ia();
@@ -8950,8 +9193,8 @@ function abcHaxballAPI(window, config){
         t.Ad = function () {
           t.Ad = null;
           b.ia();
-          /*var a = null == b.Ed ? null : */b.Ed?.stop();
-          m(t.ek/*, a*/);
+          /*var a = null == b.Ed ? null : */ b.Ed?.stop();
+          m(t.ek /*, a*/);
         };
         internalData.isHost = false;
         internalData.roomObj = b;
@@ -8967,25 +9210,26 @@ function abcHaxballAPI(window, config){
             break;
           case 2:
             switch (c.reason) {
-              case 4004:{ // recaptcha required
+              case 4004: {
+                // recaptcha required
                 // Quitting the room causes RecaptchaToken signal to become obsolate.
                 //var fR = (c)=>{
-                  //haxball.off("RecaptchaToken", fR);
-                  //u.Pf(id, password, c); // Also, u.Pf now returns Promise, so what to do with the return value?
+                //haxball.off("RecaptchaToken", fR);
+                //u.Pf(id, password, c); // Also, u.Pf now returns Promise, so what to do with the return value?
                 //};
                 //haxball.once("RecaptchaToken", fR);
                 A.i(haxball.onRequestRecaptcha);
                 m(xa.xh(c)); // <----- added for now to quit and rejoin room (to avoid some memory leaks & other problems.)
                 //u.no(a, function (c) {
-                  //u.Pf(a, password, c);
+                //u.Pf(a, password, c);
                 //});
                 break;
               }
               case 4101: // password required
-                //null == password ? 
-                  //u.Dh(a) 
+                //null == password ?
+                //u.Dh(a)
                 //:
-                  m(xa.xh(c)); // send "connection closed" for now. (maybe a PasswordRequired signal?)
+                m(xa.xh(c)); // send "connection closed" for now. (maybe a PasswordRequired signal?)
                 break;
               default:
                 m(xa.xh(c));
@@ -9015,42 +9259,61 @@ function abcHaxballAPI(window, config){
       console.log(ic instanceof q ? ic.Ta : ic);
       removeRoomFromList(haxball.room);
       haxball.cancel = null;
-      y.i(haxball.onFailure, createError(ErrorCodes.Unknown, ic instanceof q ? ic.Ta : ic)/*ic*//* instanceof q ? ic.Ta : ic*/);
+      y.i(
+        haxball.onFailure,
+        createError(
+          ErrorCodes.Unknown,
+          ic instanceof q ? ic.Ta : ic
+        ) /*ic*/ /* instanceof q ? ic.Ta : ic*/
+      );
       //console.log(ic instanceof q ? ic.Ta : ic),
-        //(c = new P("Unexpected Error", "", [])),
-        //(c.Vd.innerHTML =
-          //"An error ocurred while attempting to join the room.<br><br>This might be caused by a browser extension, try disabling all extensions and refreshing the site.<br><br>The error has been printed to the inspector console."),
-        //x.La(c.g);
+      //(c = new P("Unexpected Error", "", [])),
+      //(c.Vd.innerHTML =
+      //"An error ocurred while attempting to join the room.<br><br>This might be caused by a browser extension, try disabling all extensions and refreshing the site.<br><br>The error has been printed to the inspector console."),
+      //x.La(c.g);
     }
     return haxball;
-  };
+  }
 
-  function createRoom(roomParams, haxballParams){
+  function createRoom(roomParams, haxballParams) {
     var haxball = Object.assign({}, haxballParams);
     haxball.config = haxball.config || {};
     haxball.libraries = haxball.libraries || [];
     fixStorage(haxball);
-    var {name, password, token, noPlayer, geo, playerCount, maxPlayerCount, unlimitedPlayerCount, fakePassword, showInRoomList, onError} = roomParams;
+    var {
+      name,
+      password,
+      token,
+      noPlayer,
+      geo,
+      playerCount,
+      maxPlayerCount,
+      unlimitedPlayerCount,
+      fakePassword,
+      showInRoomList,
+      onError,
+    } = roomParams;
     haxball.onHostError = onError;
-    (password == "") && (password = null);
-    (haxball.version == null) && (haxball.version = defaultVersion);
+    password == "" && (password = null);
+    haxball.version == null && (haxball.version = defaultVersion);
     var internalData = createInternalData(haxball);
-    var fLeaveRoom = function(){
+    var fLeaveRoom = function () {
       console.log("internal event: LeaveRoom");
       removeRoomFromList(haxball.room);
       fLeaveRoom = null;
       fCreateRoomSucceeded = null;
-      haxball.plugins && (haxball.plugins.forEach((p)=>{
-        A.i(p.finalize);
-        p.room = null;
-      }));
-      if (haxball.renderer){
+      haxball.plugins &&
+        haxball.plugins.forEach((p) => {
+          A.i(p.finalize);
+          p.room = null;
+        });
+      if (haxball.renderer) {
         A.i(haxball.renderer.finalize);
         haxball.renderer.room = null;
       }
       A.i(haxball.config.finalize);
       haxball.config.room = null;
-      haxball.libraries.forEach((l)=>{
+      haxball.libraries.forEach((l) => {
         A.i(l.finalize);
         l.room = null;
       });
@@ -9062,46 +9325,52 @@ function abcHaxballAPI(window, config){
       haxball.room = null;
       A.i(haxball.onLeave);
     };
-    var fCreateRoomSucceeded = function(){
+    var fCreateRoomSucceeded = function () {
       console.log("internal event: CreateRoomSucceeded");
       //fLeaveRoom = null;
       fCreateRoomSucceeded = null;
-      haxball.room = new Room(internalData, haxball.libraries, haxball.config, haxball.plugins);
+      haxball.room = new Room(
+        internalData,
+        haxball.libraries,
+        haxball.config,
+        haxball.plugins
+      );
       allRooms.push(haxball.room);
       haxball.room.client = haxball;
       haxball.room.kickTimeout = haxball.kickTimeout || -1;
       haxball.room.hostPing = 0;
       y.i(haxball.onSuccess, haxball.room);
-      haxball.room._onPlayerObjectCreated && (
-        internalData.roomObj.ya.T.I.forEach((x)=>{
+      haxball.room._onPlayerObjectCreated &&
+        internalData.roomObj.ya.T.I.forEach((x) => {
           haxball.room._onPlayerObjectCreated(x);
-        })
-      );
+        });
     };
     var b = {
-      name: name, 
+      name: name,
       password: password,
       noPlayer: !!noPlayer,
       qs: maxPlayerCount.toString(),
       Ks: !showInRoomList,
       t: token,
       geo: geo,
-      cpc: playerCount, 
+      cpc: playerCount,
       upc: !!unlimitedPlayerCount,
-      fPwd: !!fakePassword
+      fPwd: !!fakePassword,
     };
     var { storage } = haxball;
-    var a = storage.player_name;//n_A.fe.L();  // inserted here to get current nick
-    var cpc = b.cpc, fPwd = b.fPwd;
-    function c() { // update & synchronize room data with haxball main server via websocket.
+    var a = storage.player_name; //n_A.fe.L();  // inserted here to get current nick
+    var cpc = b.cpc,
+      fPwd = b.fPwd;
+    function c() {
+      // update & synchronize room data with haxball main server via websocket.
       if (!b.Ks) {
         var a = new Fb();
         a.Id = haxball.version;
         a.w = g.jc;
-        a.I = (cpc!=null) ? cpc : g.I.length;
+        a.I = cpc != null ? cpc : g.I.length;
         a.Xe = l.fg + 1;
         a.ub = f.ub;
-        a.Ib = (fPwd==null) ? (null != l.Ib) : fPwd;
+        a.Ib = fPwd == null ? null != l.Ib : fPwd;
         a.Ec = f.Ec;
         a.Gc = f.Gc;
         var c = w.ha(16);
@@ -9113,22 +9382,22 @@ function abcHaxballAPI(window, config){
     var e = null,
       f = null, // n_A.Lh(),
       g = new fa();
-    function parseGeo(geo){
-      var geoData = storage.geo;//n_A.geo;
+    function parseGeo(geo) {
+      var geoData = storage.geo; //n_A.geo;
       return T.Rf({
         lat: (geo && geo.lat) || geoData.lat,
         lon: (geo && geo.lon) || geoData.lon,
-        code: (geo && geo.flag) ? geo.flag : geoData.flag,
+        code: geo && geo.flag ? geo.flag : geoData.flag,
       });
     }
     var f = parseGeo(b.geo);
     g.jc = b.name;
-    if (!b.noPlayer){
+    if (!b.noPlayer) {
       var k = new ea();
       k.w = a;
       k.cb = !0;
       k.Kd = f.ub;
-      k.Xb = storage.avatar;//n_A.sh.L();
+      k.Xb = storage.avatar; //n_A.sh.L();
       k.customClient = true; // host is of course using the modified client :)
       g.I.push(k);
     }
@@ -9137,7 +9406,7 @@ function abcHaxballAPI(window, config){
       ij: n.Ee + "api/host",
       state: g,
       version: haxball.version,
-      gn: b.t // token
+      gn: b.t, // token
     });
     l.upc = b.upc;
     l.fg = b.qs - 1;
@@ -9146,35 +9415,66 @@ function abcHaxballAPI(window, config){
     var t = new ba(haxball, l);
     var m = setInterval(function () {
       var a = la.la(l);
-      internalData.execOperationReceivedOnHost(a)!=false && l.ra(a);
+      internalData.execOperationReceivedOnHost(a) != false && l.ra(a);
     }, 3e3);
     l.$k = function (a) {
-      null != g.na(a) && ((a = Y.la(a, createError(ErrorCodes.BadActorError).toString(), !1)), (internalData.execOperationReceivedOnHost(a)!=false && l.ra(a))); // "Bad actor"
+      null != g.na(a) &&
+        ((a = Y.la(a, createError(ErrorCodes.BadActorError).toString(), !1)),
+        internalData.execOperationReceivedOnHost(a) != false && l.ra(a)); // "Bad actor"
     };
-    l.Hp = function (a, b, conn, auth) { // receive conn & auth data
+    l.Hp = async function (a, b, conn, auth) {
+      // receive conn & auth data
       var d = b.ic();
-      if (25 < d.length) throw new q(createError(ErrorCodes.PlayerNameTooLongError, conn, auth, d)); // "name too long"
+      if (25 < d.length)
+        throw new q(
+          createError(ErrorCodes.PlayerNameTooLongError, conn, auth, d)
+        ); // "name too long"
       var e = b.ic();
-      if (3 < e.length) throw new q(createError(ErrorCodes.PlayerCountryTooLongError, conn, auth, d, e)); // "country too long"
+      if (3 < e.length)
+        throw new q(
+          createError(ErrorCodes.PlayerCountryTooLongError, conn, auth, d, e)
+        ); // "country too long"
       var f = b.zb();
-      if (null != f && 2 < f.length) throw new q(createError(ErrorCodes.PlayerAvatarTooLongError, conn, auth, d, e, f)); // "avatar too long"
-      if (haxball.room._modifyPlayerData){
-        var newPlayerData = haxball.room._modifyPlayerData(a, d, e, f, conn, auth);
+      if (null != f && 2 < f.length)
+        throw new q(
+          createError(ErrorCodes.PlayerAvatarTooLongError, conn, auth, d, e, f)
+        ); // "avatar too long"
+      if (haxball.room._modifyPlayerData) {
+        var newPlayerData = await haxball.room._modifyPlayerData(
+          a,
+          d,
+          e,
+          f,
+          conn,
+          auth
+        );
         if (!newPlayerData)
-          throw new q(createError(ErrorCodes.PlayerJoinBlockedByMPDError, conn, auth, d, e, f)); // "Player join not allowed: " + d + " " + e + " " + f + " " + conn + " " + auth
+          throw new q(
+            createError(
+              ErrorCodes.PlayerJoinBlockedByMPDError,
+              conn,
+              auth,
+              d,
+              e,
+              f
+            )
+          ); // "Player join not allowed: " + d + " " + e + " " + f + " " + conn + " " + auth
         [d, e, f] = newPlayerData;
       }
       d = oa.la(a, d, e, f, conn, auth);
-      if (internalData.execOperationReceivedOnHost(d)==false)
+      if (internalData.execOperationReceivedOnHost(d) == false)
         throw new q(createError(ErrorCodes.PlayerJoinBlockedByORError, d)); // "Player join event blocked by OperationReceived: " + d
       l.ra(d);
       c();
-      internalData.dummyPromise.then(()=>{ // send this initial message only to this client once to see whether this player is using our modified client.
+      internalData.dummyPromise.then(() => {
+        // send this initial message only to this client once to see whether this player is using our modified client.
         internalData.roomObj?.ya._mf_(na.la(0, a, 0), a, true);
       });
     };
     l.Ip = function (a) {
-      null != g.na(a) && ((a = Y.la(a, null, !1)), (internalData.execOperationReceivedOnHost(a)!=false && l.ra(a))); // should we allow Player leave event to be blocked by OperationReceived ???
+      null != g.na(a) &&
+        ((a = Y.la(a, null, !1)),
+        internalData.execOperationReceivedOnHost(a) != false && l.ra(a)); // should we allow Player leave event to be blocked by OperationReceived ???
     };
     l.kg = function (a) {
       e = a;
@@ -9198,23 +9498,21 @@ function abcHaxballAPI(window, config){
       l.Ib = a;
       c();
       null != e && (t.Bg = roomLink(e, null != l.Ib));
-      haxball.room._onRoomPropertiesChange && haxball.room._onRoomPropertiesChange({password: a});
+      haxball.room._onRoomPropertiesChange &&
+        haxball.room._onRoomPropertiesChange({ password: a });
     };
     t.Of.jm = function (a) {
       l.Ei(a);
     };
     t.Of.Ud = G(l, l.Ud);
     t.Of.__srp__ = function (a) {
-      if (!a)
-        return;
+      if (!a) return;
       var props = {};
-      if (a.hasOwnProperty("name"))
-        props.name = g.jc = a.name || "";
-      if (a.hasOwnProperty("password"))
-        props.password = l.Ib = a.password;
+      if (a.hasOwnProperty("name")) props.name = g.jc = a.name || "";
+      if (a.hasOwnProperty("password")) props.password = l.Ib = a.password;
       if (a.hasOwnProperty("fakePassword"))
         props.fakePassword = fPwd = a.fakePassword;
-      if (a.hasOwnProperty("geo")){
+      if (a.hasOwnProperty("geo")) {
         props.geo = a.geo;
         f = parseGeo(a.geo);
         k.Kd = f.ub;
@@ -9222,11 +9520,13 @@ function abcHaxballAPI(window, config){
       if (a.hasOwnProperty("playerCount"))
         props.playerCount = cpc = a.playerCount;
       if (a.hasOwnProperty("maxPlayerCount"))
-        props.maxPlayerCount = l.fg = (a.maxPlayerCount==null) ? null : (a.maxPlayerCount - 1);
+        props.maxPlayerCount = l.fg =
+          a.maxPlayerCount == null ? null : a.maxPlayerCount - 1;
       c();
       if (a.hasOwnProperty("password"))
         null != e && (t.Bg = roomLink(e, null != l.Ib));
-      haxball.room._onRoomPropertiesChange && haxball.room._onRoomPropertiesChange(props);
+      haxball.room._onRoomPropertiesChange &&
+        haxball.room._onRoomPropertiesChange(props);
     };
     t.Of.__supc__ = function (a) {
       l.upc = a;
@@ -9235,7 +9535,7 @@ function abcHaxballAPI(window, config){
       fPwd = a;
       c();
     };
-    
+
     internalData.isHost = true;
     internalData.roomObj = t;
     internalData.roomState = g;
@@ -9243,9 +9543,10 @@ function abcHaxballAPI(window, config){
     return haxball;
   }
 
-  function generateAuth(){ // returns Promise([authKey, authObj])
+  function generateAuth() {
+    // returns Promise([authKey, authObj])
     try {
-      return I.yo().then((a)=>{
+      return I.yo().then((a) => {
         return [a.Ir(), a];
       });
     } catch (a) {
@@ -9253,7 +9554,8 @@ function abcHaxballAPI(window, config){
     }
   }
 
-  function authFromKey(key){ // returns Promise(authObj)
+  function authFromKey(key) {
+    // returns Promise(authObj)
     try {
       return I.xo(key);
     } catch (a) {
@@ -9261,33 +9563,50 @@ function abcHaxballAPI(window, config){
     }
   }
 
-  function numberToColor(number){ // lc
-    return "rgba("+[(number&16711680)>>>16, (number&65280)>>>8, number&255].join()+",255)";
+  function numberToColor(number) {
+    // lc
+    return (
+      "rgba(" +
+      [
+        (number & 16711680) >>> 16,
+        (number & 65280) >>> 8,
+        number & 255,
+      ].join() +
+      ",255)"
+    );
   }
 
-  function colorToNumber(color){
-    var arr = color.match(/rgba?[ \t]*\([ \t]*(\d+),[ \t]*(\d+),[ \t]*(\d+)[ \t]*\)/);
-    if (arr.length<4)
-      return;
-    var r = parseInt(arr[1]), g = parseInt(arr[2]), b = parseInt(arr[3]);
-    if (r>255 || g>255 || b>255)
-      return;
-    return (r<<16)|(g<<8)|b;
+  function colorToNumber(color) {
+    var arr = color.match(
+      /rgba?[ \t]*\([ \t]*(\d+),[ \t]*(\d+),[ \t]*(\d+)[ \t]*\)/
+    );
+    if (arr.length < 4) return;
+    var r = parseInt(arr[1]),
+      g = parseInt(arr[2]),
+      b = parseInt(arr[3]);
+    if (r > 255 || g > 255 || b > 255) return;
+    return (r << 16) | (g << 8) | b;
   }
 
-  function stadiumChecksum(stadium) { // returns null for original maps, checksum value for custom maps
+  function stadiumChecksum(stadium) {
+    // returns null for original maps, checksum value for custom maps
     return stadium.Pe() ? null : J.Vg(stadium.Sj(), 8);
   }
 
-  function keyState(dirX, dirY, kick){ // dirX = oneof[-1:left, 0:still, 1:right], dirY = oneof[-1:up, 0:still, 1:down], kick = true/false
-    return (kick?16:0) | (dirX>0?8:(dirX<0?4:0)) | (dirY>0?2:(dirY<0?1:0));
+  function keyState(dirX, dirY, kick) {
+    // dirX = oneof[-1:left, 0:still, 1:right], dirY = oneof[-1:up, 0:still, 1:down], kick = true/false
+    return (
+      (kick ? 16 : 0) |
+      (dirX > 0 ? 8 : dirX < 0 ? 4 : 0) |
+      (dirY > 0 ? 2 : dirY < 0 ? 1 : 0)
+    );
   }
 
-  function reverseKeyState(state){
+  function reverseKeyState(state) {
     return {
-      dirX: ((state&8)>0)-((state&4)>0),
-      dirY: ((state&2)>0)-((state&1)>0),
-      kick: (state&16)>0
+      dirX: ((state & 8) > 0) - ((state & 4) > 0),
+      dirY: ((state & 2) > 0) - ((state & 1) > 0),
+      kick: (state & 16) > 0,
     };
   }
 
@@ -9311,225 +9630,252 @@ function abcHaxballAPI(window, config){
     return T.Hh(string);
   }
 
-  function getDefaultStadiums(){
+  function getDefaultStadiums() {
     return h.Kh();
   }
 
-  function parseStadium(textDataFromHbsFile, onError){
+  function parseStadium(textDataFromHbsFile, onError) {
     try {
       var stadium = new h();
       stadium.Lk(textDataFromHbsFile);
       return stadium;
     } catch (k) {
-      b = k instanceof q ? k.Ta : k,
-      b instanceof SyntaxError ? onError(createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)) :  // "SyntaxError in line: " + r.Be(b.lineNumber, "")
-      b instanceof Bb ? onError(b.xp) : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
+      (b = k instanceof q ? k.Ta : k),
+        b instanceof SyntaxError
+          ? onError(
+              createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)
+            ) // "SyntaxError in line: " + r.Be(b.lineNumber, "")
+          : b instanceof Bb
+          ? onError(b.xp)
+          : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
     }
   }
 
-  function exportStadium(stadium){
+  function exportStadium(stadium) {
     return stadium.se();
   }
 
-  function getVertexIndexAtMapCoord(roomState, {x, y}, threshold){
-    return roomState.K?.ta.J.findIndex((vertex)=>{
-      var deltaX = vertex.a.x-x, deltaY = vertex.a.y-y;
-      return (deltaX*deltaX+deltaY*deltaY<=threshold*threshold);
+  function getVertexIndexAtMapCoord(roomState, { x, y }, threshold) {
+    return roomState.K?.ta.J.findIndex((vertex) => {
+      var deltaX = vertex.a.x - x,
+        deltaY = vertex.a.y - y;
+      return deltaX * deltaX + deltaY * deltaY <= threshold * threshold;
     });
   }
 
-  function getSegmentIndexAtMapCoord(roomState, {x, y}, threshold){
-    return roomState.K?.ta.U.findIndex((segment)=>{
+  function getSegmentIndexAtMapCoord(roomState, { x, y }, threshold) {
+    return roomState.K?.ta.U.findIndex((segment) => {
       var d;
-      if (0*segment.vb==0){
-        var dx = x-segment.Xd.x, dy = y-segment.Xd.y;
-        if ((segment.Hg.x*dx+segment.Hg.y*dy>0 && segment.Ig.x*dx+segment.Ig.y*dy>0)==(segment.vb<=0))
+      if (0 * segment.vb == 0) {
+        var dx = x - segment.Xd.x,
+          dy = y - segment.Xd.y;
+        if (
+          (segment.Hg.x * dx + segment.Hg.y * dy > 0 &&
+            segment.Ig.x * dx + segment.Ig.y * dy > 0) ==
+          segment.vb <= 0
+        )
           return false;
-        d = Math.sqrt(dx*dx+dy*dy)-segment.Yj;
-      }
-      else{
-        var p0 = segment.W.a, p1 = segment.ca.a, dx = p1.x-p0.x, dy = p1.y-p0.y, _dx = x-p1.x, _dy = y-p1.y;
-        if ((x-p0.x)*dx+(y-p0.y)*dy<=0 || _dx*dx+_dy*dy>=0)
+        d = Math.sqrt(dx * dx + dy * dy) - segment.Yj;
+      } else {
+        var p0 = segment.W.a,
+          p1 = segment.ca.a,
+          dx = p1.x - p0.x,
+          dy = p1.y - p0.y,
+          _dx = x - p1.x,
+          _dy = y - p1.y;
+        if ((x - p0.x) * dx + (y - p0.y) * dy <= 0 || _dx * dx + _dy * dy >= 0)
           return false;
-        d = segment.wa.x*_dx+segment.wa.y*_dy;
+        d = segment.wa.x * _dx + segment.wa.y * _dy;
       }
-      return Math.abs(d)<threshold;
+      return Math.abs(d) < threshold;
     });
   }
 
-  function getGoalIndexAtMapCoord(roomState, {x, y}, threshold){
-    return roomState.S.tc.findIndex((goal)=>{
-      var p0 = goal.W, p1 = goal.ca, dx = p1.x-p0.x, dy = p1.y-p0.y, _dx = x-p1.x, _dy = y-p1.y;
-      if ((x-p0.x)*dx+(y-p0.y)*dy<=0 || _dx*dx+_dy*dy>=0)
+  function getGoalIndexAtMapCoord(roomState, { x, y }, threshold) {
+    return roomState.S.tc.findIndex((goal) => {
+      var p0 = goal.W,
+        p1 = goal.ca,
+        dx = p1.x - p0.x,
+        dy = p1.y - p0.y,
+        _dx = x - p1.x,
+        _dy = y - p1.y;
+      if ((x - p0.x) * dx + (y - p0.y) * dy <= 0 || _dx * dx + _dy * dy >= 0)
         return false;
-      var d = Math.sqrt(dy*dy+dx*dx);
-      return (Math.abs(_dx*dy/d-_dy*dx/d)<threshold);
+      var d = Math.sqrt(dy * dy + dx * dx);
+      return Math.abs((_dx * dy) / d - (_dy * dx) / d) < threshold;
     });
   }
 
-  function getPlaneIndexAtMapCoord(roomState, {x, y}, threshold){
-    return roomState.K?.ta.qa.findIndex((plane)=>{
-      return (Math.abs(plane.Ua-(plane.wa.x*x+plane.wa.y*y))<threshold);
+  function getPlaneIndexAtMapCoord(roomState, { x, y }, threshold) {
+    return roomState.K?.ta.qa.findIndex((plane) => {
+      return Math.abs(plane.Ua - (plane.wa.x * x + plane.wa.y * y)) < threshold;
     });
   }
 
-  function getJointIndexAtMapCoord(roomState, {x, y}, threshold){
+  function getJointIndexAtMapCoord(roomState, { x, y }, threshold) {
     var mapObjects = roomState.K?.ta;
-    if (!mapObjects)
-      return -1;
+    if (!mapObjects) return -1;
     var discs = mapObjects.F;
-    return mapObjects.pb.findIndex((joint)=>{
+    return mapObjects.pb.findIndex((joint) => {
       var disc1 = discs[joint.Zd]; // a
-      if (!disc1)
-        return false;
+      if (!disc1) return false;
       var disc2 = discs[joint.Yd]; // b
-      if (!disc2)
+      if (!disc2) return false;
+      var p0 = disc1.a,
+        p1 = disc2.a,
+        dx = p1.x - p0.x,
+        dy = p1.y - p0.y,
+        _dx = x - p1.x,
+        _dy = y - p1.y;
+      if ((x - p0.x) * dx + (y - p0.y) * dy <= 0 || _dx * dx + _dy * dy >= 0)
         return false;
-      var p0 = disc1.a, p1 = disc2.a, dx = p1.x-p0.x, dy = p1.y-p0.y, _dx = x-p1.x, _dy = y-p1.y;
-      if ((x-p0.x)*dx+(y-p0.y)*dy<=0 || _dx*dx+_dy*dy>=0)
-        return false;
-      var d = Math.sqrt(dy*dy+dx*dx);
-      return (Math.abs(_dx*dy/d-_dy*dx/d)<threshold);
+      var d = Math.sqrt(dy * dy + dx * dx);
+      return Math.abs((_dx * dy) / d - (_dy * dx) / d) < threshold;
     });
   }
 
-  function getDiscIndexAtMapCoord(roomState, {x, y}){
-    return roomState.K?.ta.F.findIndex((disc)=>{
-      var deltaX = disc.a.x-x, deltaY = disc.a.y-y;
-      return (deltaX*deltaX+deltaY*deltaY<=disc.Z*disc.Z);
+  function getDiscIndexAtMapCoord(roomState, { x, y }) {
+    return roomState.K?.ta.F.findIndex((disc) => {
+      var deltaX = disc.a.x - x,
+        deltaY = disc.a.y - y;
+      return deltaX * deltaX + deltaY * deltaY <= disc.Z * disc.Z;
     });
   }
 
-  function getSpawnPointIndexAtMapCoord(roomState, {x, y}, threshold){
-    if (!threshold)
-      threshold = roomState.K?.S.ge.Z;
-    var sqrThreshold = threshold*threshold;
-    var idx = roomState.K?.S.Dd.findIndex((p)=>{
-      var deltaX = p.x-x, deltaY = p.y-y;
-      return (deltaX*deltaX+deltaY*deltaY<=sqrThreshold);
+  function getSpawnPointIndexAtMapCoord(roomState, { x, y }, threshold) {
+    if (!threshold) threshold = roomState.K?.S.ge.Z;
+    var sqrThreshold = threshold * threshold;
+    var idx = roomState.K?.S.Dd.findIndex((p) => {
+      var deltaX = p.x - x,
+        deltaY = p.y - y;
+      return deltaX * deltaX + deltaY * deltaY <= sqrThreshold;
     });
-    if (idx>=0)
-      return [idx, 1];
-    idx = roomState.K?.S.md.findIndex((p)=>{
-      var deltaX = p.x-x, deltaY = p.y-y;
-      return (deltaX*deltaX+deltaY*deltaY<=sqrThreshold);
+    if (idx >= 0) return [idx, 1];
+    idx = roomState.K?.S.md.findIndex((p) => {
+      var deltaX = p.x - x,
+        deltaY = p.y - y;
+      return deltaX * deltaX + deltaY * deltaY <= sqrThreshold;
     });
-    if (idx>=0)
-      return [idx, 2];
+    if (idx >= 0) return [idx, 2];
     return [-1, -1];
   }
 
-  function getVertexAtMapCoord(roomState, p, threshold){
+  function getVertexAtMapCoord(roomState, p, threshold) {
     return roomState.K?.ta.J[getVertexIndexAtMapCoord(roomState, p, threshold)];
   }
 
-  function getSegmentAtMapCoord(roomState, p, threshold){
-    return roomState.K?.ta.U[getSegmentIndexAtMapCoord(roomState, p, threshold)];
+  function getSegmentAtMapCoord(roomState, p, threshold) {
+    return roomState.K?.ta.U[
+      getSegmentIndexAtMapCoord(roomState, p, threshold)
+    ];
   }
 
-  function getGoalAtMapCoord(roomState, p, threshold){
+  function getGoalAtMapCoord(roomState, p, threshold) {
     return roomState.S.tc[getGoalIndexAtMapCoord(roomState, p, threshold)];
   }
 
-  function getPlaneAtMapCoord(roomState, p, threshold){
+  function getPlaneAtMapCoord(roomState, p, threshold) {
     return roomState.K?.ta.qa[getPlaneIndexAtMapCoord(roomState, p, threshold)];
   }
 
-  function getJointAtMapCoord(roomState, p, threshold){
+  function getJointAtMapCoord(roomState, p, threshold) {
     return roomState.K?.ta.pb[getJointIndexAtMapCoord(roomState, p, threshold)];
   }
 
-  function getDiscAtMapCoord(roomState, p){
+  function getDiscAtMapCoord(roomState, p) {
     return roomState.K?.ta.F[getDiscIndexAtMapCoord(roomState, p)];
   }
 
   var eventCallbacks = [];
 
-  function Room(internalData, libraries, config, plugins){
-    var renderer = internalData.renderer, cfg = config;
+  function Room(internalData, libraries, config, plugins) {
+    var renderer = internalData.renderer,
+      cfg = config;
     Object.defineProperty(this, "config", {
-      get(){
+      get() {
         return cfg;
-      }
+      },
     });
-    Object.defineProperty(this, "sdp", { // usage: require("sdp-transform").parse(sdp);
-      get(){
-        return internalData.isHost ? null : internalData.roomObj.ya.pa.Ra.remoteDescription.sdp;
-      }
+    Object.defineProperty(this, "sdp", {
+      // usage: require("sdp-transform").parse(sdp);
+      get() {
+        return internalData.isHost
+          ? null
+          : internalData.roomObj.ya.pa.Ra.remoteDescription.sdp;
+      },
     });
     Object.defineProperty(this, "isHost", {
-      get(){
+      get() {
         return internalData.isHost;
-      }
+      },
     });
     Object.defineProperty(this, "currentPlayerId", {
-      get(){
+      get() {
         return internalData.roomObj.ya.uc;
-      }
+      },
     });
     Object.defineProperty(this, "currentPlayer", {
-      get(){
+      get() {
         var id = internalData.roomObj.ya.uc;
-        return internalData.roomObj.ya.T.I.filter((x)=>(x.V==id))[0];
-      }
+        return internalData.roomObj.ya.T.I.filter((x) => x.V == id)[0];
+      },
     });
     Object.defineProperty(this, "state", {
-      get(){
+      get() {
         return internalData.roomObj?.ya?.T;
-      }
+      },
     });
     Object.defineProperty(this, "stateExt", {
-      get(){
+      get() {
         return internalData.extrapolatedRoomState;
-      }
+      },
     });
     Object.defineProperty(this, "gameState", {
-      get(){
+      get() {
         return internalData.roomState?.K;
-      }
+      },
     });
     Object.defineProperty(this, "gameStateExt", {
-      get(){
+      get() {
         return internalData.extrapolatedRoomState?.K;
-      }
+      },
     });
     this.kickTimeout = -1;
     this.libraries = libraries || [];
-    this.librariesMap = this.libraries.reduce((acc, x)=>{
+    this.librariesMap = this.libraries.reduce((acc, x) => {
       acc[x.name] = x;
       return acc;
     }, {});
     this.renderer = renderer;
-    if (internalData.pluginMechanismActive){
+    if (internalData.pluginMechanismActive) {
       this.plugins = plugins || [];
-      this.pluginsMap = this.plugins.reduce((acc, x)=>{
+      this.pluginsMap = this.plugins.reduce((acc, x) => {
         acc[x.name] = x;
         return acc;
       }, {});
-      this.activePlugins = this.plugins.filter((p)=>p.active);
+      this.activePlugins = this.plugins.filter((p) => p.active);
 
-      function addInOrder(a, b, x){ // a is an array, b is the same array with some elements removed, x is one of the removed elements. objective is to always add the same element back in the same index.
-        var i=0, j=0;
-        while(i<a.length && j<b.length){
-          while (i<a.length && j<b.length && a[i]==b[j] && a[i]!=x){
+      function addInOrder(a, b, x) {
+        // a is an array, b is the same array with some elements removed, x is one of the removed elements. objective is to always add the same element back in the same index.
+        var i = 0,
+          j = 0;
+        while (i < a.length && j < b.length) {
+          while (i < a.length && j < b.length && a[i] == b[j] && a[i] != x) {
             i++;
             j++;
           }
-          if (a[i]==x)
-            break;
-          while (i<a.length && j<b.length && a[i]!=b[j] && a[i]!=x){
+          if (a[i] == x) break;
+          while (i < a.length && j < b.length && a[i] != b[j] && a[i] != x) {
             i++;
           }
-          if (a[i]==x)
-            break;
+          if (a[i] == x) break;
         }
-        if (b[j]!=x)
-          b.splice(j, 0, x);
+        if (b[j] != x) b.splice(j, 0, x);
       }
 
       var that = this;
 
-      this.setConfig = function(newCfg){
+      this.setConfig = function (newCfg) {
         var oldCfg = cfg;
         A.i(oldCfg.finalize);
         oldCfg.room = null;
@@ -9541,15 +9887,14 @@ function abcHaxballAPI(window, config){
         ia.i(that._onConfigUpdate, oldCfg, newCfg);
       };
 
-      this.mixConfig = function(newCfg){
-        Object.keys(newCfg).forEach((key)=>{
+      this.mixConfig = function (newCfg) {
+        Object.keys(newCfg).forEach((key) => {
           var f2 = newCfg[key];
-          if (typeof f2=="function"){
+          if (typeof f2 == "function") {
             var f1 = cfg[key];
-            if (!f1)
-              cfg[key] = f2;
-            else if (typeof f1=="function"){
-              cfg[key] = function(...args){
+            if (!f1) cfg[key] = f2;
+            else if (typeof f1 == "function") {
+              cfg[key] = function (...args) {
                 f1(...args);
                 f2(...args);
               };
@@ -9558,12 +9903,12 @@ function abcHaxballAPI(window, config){
         });
       };
 
-      this.setRenderer = function(newRenderer){
-        if (renderer){
+      this.setRenderer = function (newRenderer) {
+        if (renderer) {
           A.i(renderer.finalize);
           renderer.room = null;
         }
-        if (newRenderer){
+        if (newRenderer) {
           newRenderer.room = that;
           y.i(newRenderer.initialize);
         }
@@ -9575,109 +9920,204 @@ function abcHaxballAPI(window, config){
         ia.i(that._onRendererUpdate, oldRenderer, newRenderer);
       };
 
-      this.setPluginActive = function(name, active){
-        var p = that.plugins.filter((x)=>x.name==name)[0];
-        if (!p || p.active==active)
-          return;
-        if (!active){
-          var idx = that.activePlugins.findIndex((x)=>x.name==name);
-          if (idx<0)
-            return;
+      this.setPluginActive = function (name, active) {
+        var p = that.plugins.filter((x) => x.name == name)[0];
+        if (!p || p.active == active) return;
+        if (!active) {
+          var idx = that.activePlugins.findIndex((x) => x.name == name);
+          if (idx < 0) return;
           that.activePlugins.splice(idx, 1);
-        }
-        else{
-          var idx = that.activePlugins.findIndex((x)=>x.name==name);
-          if (idx>=0)
-            return;
+        } else {
+          var idx = that.activePlugins.findIndex((x) => x.name == name);
+          if (idx >= 0) return;
           //that.activePlugins.splice(oIdx, 0, p); // might change the order of plugins, therefore we have to implement addInOrder.
-          addInOrder(that.plugins, that.activePlugins, p); // insert plugin to its old index. 
+          addInOrder(that.plugins, that.activePlugins, p); // insert plugin to its old index.
         }
         p.active = active;
         y.i(that._onPluginActiveChange, p);
       };
 
-      function defineCfgProperty(name){
+      function defineCfgProperty(name) {
         Object.defineProperty(that, name, {
-          get(){
+          get() {
             return cfg[name];
           },
-          set(value){
+          set(value) {
             cfg[name] = value;
-          }
+          },
         });
       }
 
-      function defineCfgModifierCallback(name){
+      function defineCfgModifierCallback(name) {
         defineCfgProperty(name + "Before");
         defineCfgProperty(name);
         defineCfgProperty(name + "After");
       }
 
-      this._modifyPlayerData = function(playerId, name, flag, avatar, conn, auth){
-        var a = [name, flag, avatar], customData;
-        cfg.modifyPlayerDataBefore && ([a, customData] = cfg.modifyPlayerDataBefore(playerId, a[0], a[1], a[2], conn, auth));
-        if (customData!==false){
-          that.activePlugins.forEach((p)=>{
-            p.modifyPlayerData && a && (a = p.modifyPlayerData(playerId, a[0], a[1], a[2], conn, auth, customData));
+      this._modifyPlayerData = function (
+        playerId,
+        name,
+        flag,
+        avatar,
+        conn,
+        auth
+      ) {
+        var a = [name, flag, avatar],
+          customData;
+        cfg.modifyPlayerDataBefore &&
+          ([a, customData] = cfg.modifyPlayerDataBefore(
+            playerId,
+            a[0],
+            a[1],
+            a[2],
+            conn,
+            auth
+          ));
+        if (customData !== false) {
+          that.activePlugins.forEach((p) => {
+            p.modifyPlayerData &&
+              a &&
+              (a = p.modifyPlayerData(
+                playerId,
+                a[0],
+                a[1],
+                a[2],
+                conn,
+                auth,
+                customData
+              ));
           });
-          cfg.modifyPlayerData && a && (a = cfg.modifyPlayerData(playerId, a[0], a[1], a[2], conn, auth, customData));
-          cfg.modifyPlayerDataAfter && a && (a = cfg.modifyPlayerDataAfter(playerId, a[0], a[1], a[2], conn, auth, customData));
+          cfg.modifyPlayerData &&
+            a &&
+            (a = cfg.modifyPlayerData(
+              playerId,
+              a[0],
+              a[1],
+              a[2],
+              conn,
+              auth,
+              customData
+            ));
+          cfg.modifyPlayerDataAfter &&
+            a &&
+            (a = cfg.modifyPlayerDataAfter(
+              playerId,
+              a[0],
+              a[1],
+              a[2],
+              conn,
+              auth,
+              customData
+            ));
         }
         return a;
       };
       defineCfgModifierCallback("modifyPlayerData");
 
-      this._modifyPlayerPing = function(playerId, ping){
+      this._modifyPlayerPing = function (playerId, ping) {
         var customData;
-        cfg.modifyPlayerPingBefore && ([ping, customData] = cfg.modifyPlayerPingBefore(playerId, ping));
-        if (customData!==false){
-          that.activePlugins.forEach((p)=>{
-            p.modifyPlayerPing && (ping = p.modifyPlayerPing(playerId, ping, customData));
+        cfg.modifyPlayerPingBefore &&
+          ([ping, customData] = cfg.modifyPlayerPingBefore(playerId, ping));
+        if (customData !== false) {
+          that.activePlugins.forEach((p) => {
+            p.modifyPlayerPing &&
+              (ping = p.modifyPlayerPing(playerId, ping, customData));
           });
-          cfg.modifyPlayerPing && (ping = cfg.modifyPlayerPing(playerId, ping, customData));
-          cfg.modifyPlayerPingAfter && (ping = cfg.modifyPlayerPingAfter(playerId, ping, customData));
+          cfg.modifyPlayerPing &&
+            (ping = cfg.modifyPlayerPing(playerId, ping, customData));
+          cfg.modifyPlayerPingAfter &&
+            (ping = cfg.modifyPlayerPingAfter(playerId, ping, customData));
         }
         return ping;
       };
       defineCfgModifierCallback("modifyPlayerPing");
 
-      this._modifyClientPing = function(ping){
+      this._modifyClientPing = function (ping) {
         var customData;
-        cfg.modifyClientPingBefore && ([ping, customData] = cfg.modifyClientPingBefore(ping));
-        if (customData!==false){
-          that.activePlugins.forEach((p)=>{
+        cfg.modifyClientPingBefore &&
+          ([ping, customData] = cfg.modifyClientPingBefore(ping));
+        if (customData !== false) {
+          that.activePlugins.forEach((p) => {
             p.modifyClientPing && (ping = p.modifyClientPing(ping, customData));
           });
-          cfg.modifyClientPing && (ping = cfg.modifyClientPing(ping, customData));
-          cfg.modifyClientPingAfter && (ping = cfg.modifyClientPingAfter(ping, customData));
+          cfg.modifyClientPing &&
+            (ping = cfg.modifyClientPing(ping, customData));
+          cfg.modifyClientPingAfter &&
+            (ping = cfg.modifyClientPingAfter(ping, customData));
         }
         return ping;
       };
       defineCfgModifierCallback("modifyClientPing");
 
-      this._modifyFrameNo = function(frameNo){
+      this._modifyFrameNo = function (frameNo) {
         var customData;
-        cfg.modifyFrameNoBefore && ([frameNo, customData] = cfg.modifyFrameNoBefore(frameNo));
-        if (customData!==false){
-          that.activePlugins.forEach((p)=>{
+        cfg.modifyFrameNoBefore &&
+          ([frameNo, customData] = cfg.modifyFrameNoBefore(frameNo));
+        if (customData !== false) {
+          that.activePlugins.forEach((p) => {
             p.modifyFrameNo && (frameNo = p.modifyFrameNo(frameNo, customData));
           });
-          cfg.modifyFrameNo && (frameNo = cfg.modifyFrameNo(frameNo, customData));
-          cfg.modifyFrameNoAfter && (frameNo = cfg.modifyFrameNoAfter(frameNo, customData));
+          cfg.modifyFrameNo &&
+            (frameNo = cfg.modifyFrameNo(frameNo, customData));
+          cfg.modifyFrameNoAfter &&
+            (frameNo = cfg.modifyFrameNoAfter(frameNo, customData));
         }
         return frameNo;
       };
       defineCfgModifierCallback("modifyFrameNo");
 
-      this._onOperationReceived = function(type, msg, globalFrameNo, clientFrameNo){
-        var customData = cfg.onBeforeOperationReceived && cfg.onBeforeOperationReceived(type, msg, globalFrameNo, clientFrameNo), b = (customData!==false);
-        that.activePlugins.forEach((p)=>{
-          if (b && p.onOperationReceived && !p.onOperationReceived(type, msg, globalFrameNo, clientFrameNo, customData))
+      this._onOperationReceived = function (
+        type,
+        msg,
+        globalFrameNo,
+        clientFrameNo
+      ) {
+        var customData =
+            cfg.onBeforeOperationReceived &&
+            cfg.onBeforeOperationReceived(
+              type,
+              msg,
+              globalFrameNo,
+              clientFrameNo
+            ),
+          b = customData !== false;
+        that.activePlugins.forEach((p) => {
+          if (
+            b &&
+            p.onOperationReceived &&
+            !p.onOperationReceived(
+              type,
+              msg,
+              globalFrameNo,
+              clientFrameNo,
+              customData
+            )
+          )
             b = false;
         });
-        if (b && cfg.onOperationReceived && !cfg.onOperationReceived(type, msg, globalFrameNo, clientFrameNo, customData))
+        if (
+          b &&
+          cfg.onOperationReceived &&
+          !cfg.onOperationReceived(
+            type,
+            msg,
+            globalFrameNo,
+            clientFrameNo,
+            customData
+          )
+        )
           b = false;
-        if (b && cfg.onAfterOperationReceived && !cfg.onAfterOperationReceived(type, msg, globalFrameNo, clientFrameNo, customData))
+        if (
+          b &&
+          cfg.onAfterOperationReceived &&
+          !cfg.onAfterOperationReceived(
+            type,
+            msg,
+            globalFrameNo,
+            clientFrameNo,
+            customData
+          )
+        )
           b = false;
         return b;
       };
@@ -9685,18 +10125,20 @@ function abcHaxballAPI(window, config){
       defineCfgProperty("onOperationReceived");
       defineCfgProperty("onAfterOperationReceived");
 
-      // metadata is not used or stored, it's just for general information about the event. 
+      // metadata is not used or stored, it's just for general information about the event.
       // we should not use the original variable names inside metadata as string, otherwise they will not be minified.
-      var createEventCallback = function(eventName, metadata){
-        that["_on" + eventName] = function(...params){
-          var f = cfg["onBefore" + eventName], customData = f && f(...params);
-          if (customData!==false){
-            that.activePlugins.forEach((p)=>{
-              f = p["on" + eventName], (f && f(...params, customData));
+      var createEventCallback = function (eventName, metadata) {
+        that["_on" + eventName] = function (...params) {
+          var f = cfg["onBefore" + eventName],
+            customData = f && f(...params);
+          if (customData !== false) {
+            that.activePlugins.forEach((p) => {
+              (f = p["on" + eventName]), f && f(...params, customData);
             });
-            f = cfg["on" + eventName], (f && f(...params, customData));
-            f = renderer && renderer["on" + eventName], (f && f(...params, customData));
-            f = cfg["onAfter" + eventName], (f && f(...params, customData));
+            (f = cfg["on" + eventName]), f && f(...params, customData);
+            (f = renderer && renderer["on" + eventName]),
+              f && f(...params, customData);
+            (f = cfg["onAfter" + eventName]), f && f(...params, customData);
           }
         };
         defineCfgProperty("onBefore" + eventName);
@@ -9704,347 +10146,381 @@ function abcHaxballAPI(window, config){
         defineCfgProperty("onAfter" + eventName);
       };
 
-      eventCallbacks.forEach(({name, metadata})=>{
+      eventCallbacks.forEach(({ name, metadata }) => {
         createEventCallback(name, metadata);
       });
     }
 
-    this.setProperties = function(properties) { // { name, password, geo: { lat, lon, flag }, playerCount, maxPlayerCount, fakePassword }
-      if (!internalData.isHost)
-        return;
+    this.setProperties = function (properties) {
+      // { name, password, geo: { lat, lon, flag }, playerCount, maxPlayerCount, fakePassword }
+      if (!internalData.isHost) return;
       internalData.roomObj?.Of.__srp__(properties);
     };
 
-    this.setRecaptcha = function(on) { // on: true | false
+    this.setRecaptcha = function (on) {
+      // on: true | false
       internalData.roomObj?.ya.Ic.Ei(on);
     };
 
-    this.setKickRateLimit = function(min, rate, burst) {
+    this.setKickRateLimit = function (min, rate, burst) {
       var msg = ma.la(min, rate, burst);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya.ra(msg);
-    };
-    
-    this.sendCustomEvent = function(type, data) {
-      var msg = CustomEvent.la(type, data);
-      internalData.execOperationReceivedOnHost(msg)!=false && (
-        (this.isHost ? 
-          internalData.roomObj?.ya.ra_custom(msg, internalData.roomObj.ya.uc, true) 
-        :
-          (internalData.roomObj?.ya?.T?.I[0].customClient && internalData.roomObj?.ya.ra(msg))
-        )
-      );
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya.ra(msg);
     };
 
-    this.setHandicap = function(handicap) {
+    this.sendCustomEvent = function (type, data) {
+      var msg = CustomEvent.la(type, data);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        (this.isHost
+          ? internalData.roomObj?.ya.ra_custom(
+              msg,
+              internalData.roomObj.ya.uc,
+              true
+            )
+          : internalData.roomObj?.ya?.T?.I[0].customClient &&
+            internalData.roomObj?.ya.ra(msg));
+    };
+
+    this.setHandicap = function (handicap) {
       internalData.roomObj?.ya.kr(handicap);
     };
 
-    this.setExtrapolation = function(extrapolation) {
-      that.client.__internalData.storage.setValue("extrapolation", extrapolation);
+    this.setExtrapolation = function (extrapolation) {
+      that.client.__internalData.storage.setValue(
+        "extrapolation",
+        extrapolation
+      );
       internalData.roomObj?.ya.gm(extrapolation);
     };
-    
-    this.clearBans = function() {
-      if (!internalData.isHost)
-        return;
+
+    this.clearBans = function () {
+      if (!internalData.isHost) return;
       internalData.roomObj?.ya.Ud();
     };
 
-    this.setAvatar = function(avatar) {
+    this.clearBan = function (id) {
+      if (!internalData.isHost) return;
+      internalData.roomObj?.ya.clearBan(id);
+    };
+
+    this.setAvatar = function (avatar) {
       null != avatar && (avatar = avatar.substr(0, 2));
       that.client.__internalData.storage.setValue("avatar", avatar);
       var msg = ra.la(avatar);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya.ra(msg);
     };
 
-    this.setPlayerAvatar = function(id, value, headless){ // host-only
+    this.setPlayerAvatar = function (id, value, headless) {
+      // host-only
       var msg = headless ? qb.la(id, value) : ra.la(value);
-      internalData.execOperationReceivedOnHost(msg, undefined, headless?0:id)!=false && internalData.roomObj?.ya.ra(msg);
+      internalData.execOperationReceivedOnHost(
+        msg,
+        undefined,
+        headless ? 0 : id
+      ) != false && internalData.roomObj?.ya.ra(msg);
     };
 
-    this.reorderPlayers = function(playerIdList, moveToTop){ // host-only
+    this.reorderPlayers = function (playerIdList, moveToTop) {
+      // host-only
       var msg = pb.la(playerIdList, moveToTop);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya.ra(msg);
     };
 
-    this.setChatIndicatorActive = function(active) {
+    this.setChatIndicatorActive = function (active) {
       var msg = na.la(active ? 1 : 0);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya.ra(msg);
     };
 
-    this.setTeamColors = function(teamId, angle, ...colors) { // teamId: one of (1=red, 2=blue), colors: maximum 4 parseable color parameters 
+    this.setTeamColors = function (teamId, angle, ...colors) {
+      // teamId: one of (1=red, 2=blue), colors: maximum 4 parseable color parameters
       var msg = ub.__cq__(teamId, angle, ...colors);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya.ra(msg);
     };
 
-    this.setUnlimitedPlayerCount = function(on){ // boolean
+    this.setUnlimitedPlayerCount = function (on) {
+      // boolean
       internalData.roomObj?.Of.__supc__(on);
     };
 
-    this.setFakePassword = function(on){ // boolean
+    this.setFakePassword = function (on) {
+      // boolean
       internalData.roomObj?.Of.__sfp__(on);
     };
 
-    var sendIndividualChat = function(msg, targetId) {
+    var sendIndividualChat = function (msg, targetId) {
       var x = internalData.roomObj?.ya;
-      if (!x)
-        return;
+      if (!x) return;
       var d = new Na();
       d.Tc = msg;
-      (internalData.execOperationReceivedOnHost(d, targetId)!=false) && (
-        null != targetId ? internalData.dummyPromise.then(function() {
-          x._mf_(d, targetId);
-        }) : x.ra(d)
-      );
+      internalData.execOperationReceivedOnHost(d, targetId) != false &&
+        (null != targetId
+          ? internalData.dummyPromise.then(function () {
+              x._mf_(d, targetId);
+            })
+          : x.ra(d));
     };
 
-    this.sendChat = function(msg, targetId){  // can only use targetId in host mode.
-      if (internalData.isHost)
-        sendIndividualChat(msg, targetId);
-      else{
+    this.sendChat = function (msg, targetId) {
+      // can only use targetId in host mode.
+      if (internalData.isHost) sendIndividualChat(msg, targetId);
+      else {
         var x = internalData.roomObj?.ya;
-        if (!x)
-          return;
+        if (!x) return;
         var c = new Na();
         c.Tc = msg;
-        internalData.execOperationReceivedOnHost(c)!=false && x.ra(c);
+        internalData.execOperationReceivedOnHost(c) != false && x.ra(c);
       }
     };
 
-    this.sendChatIndicator = function(active){
+    this.sendChatIndicator = function (active) {
       internalData.roomObj?.bm(active);
     };
 
-    this.sendAnnouncement = function(msg, targetId, color, style, sound) { // host-only function
-      if (!internalData.isHost)
-        return;
+    this.sendAnnouncement = function (msg, targetId, color, style, sound) {
+      // host-only function
+      if (!internalData.isHost) return;
       var x = internalData.roomObj?.ya;
-      if (!x)
-        return;
+      if (!x) return;
       style = {
         bold: 1,
         italic: 2,
         small: 3,
         "small-bold": 4,
-        "small-italic": 5
+        "small-italic": 5,
       }[style];
       null == style && (style = 0);
       null == color && (color = -1);
       null == sound && (sound = 1);
       var h = rb.la(msg, color, style, sound);
-      (internalData.execOperationReceivedOnHost(h, targetId)!=false) && (
-        null != targetId ? internalData.dummyPromise.then(function() {
-          x._mf_(h, targetId);
-        }) : x.ra(h)
-      )
+      internalData.execOperationReceivedOnHost(h, targetId) != false &&
+        (null != targetId
+          ? internalData.dummyPromise.then(function () {
+              x._mf_(h, targetId);
+            })
+          : x.ra(h));
     };
 
-    this.setDiscProperties = function(discId, properties) { // host-only function
-      if (!internalData.isHost)
-        return;
+    this.setDiscProperties = function (discId, properties) {
+      // host-only function
+      if (!internalData.isHost) return;
       var x = internalData.roomObj?.ya;
-      if (!x)
-        return;
+      if (!x) return;
       var msg = ob._Kf_(discId, !1, properties);
-      internalData.execOperationReceivedOnHost(msg)!=false && x.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false && x.ra(msg);
     };
 
-    this.setPlayerDiscProperties = function(playerId, properties) { // host-only function
-      if (!internalData.isHost)
-        return;
+    this.setPlayerDiscProperties = function (playerId, properties) {
+      // host-only function
+      if (!internalData.isHost) return;
       var x = internalData.roomObj?.ya;
-      if (!x)
-        return;
+      if (!x) return;
       var msg = ob._Kf_(playerId, !0, properties);
-      internalData.execOperationReceivedOnHost(msg)!=false && x.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false && x.ra(msg);
     };
 
-    this.getKeyState = function(){
+    this.getKeyState = function () {
       return internalData.keyState;
     };
 
-    this.setKeyState = function(state){
-      if (that.kickTimeout<0)
-        internalData.keyState = state;
-      else if ((state&16) > 0 && (internalData.keyState&16) > 0 && !that.currentPlayer?.Wb){
-        internalData.keyState = state&-17;
-        setTimeout(()=>{
+    this.setKeyState = function (state) {
+      if (that.kickTimeout < 0) internalData.keyState = state;
+      else if (
+        (state & 16) > 0 &&
+        (internalData.keyState & 16) > 0 &&
+        !that.currentPlayer?.Wb
+      ) {
+        internalData.keyState = state & -17;
+        setTimeout(() => {
           internalData.keyState = state;
         }, that.kickTimeout);
-      }
-      else
-        internalData.keyState = state;
+      } else internalData.keyState = state;
     };
 
-    this.startGame = function(){
+    this.startGame = function () {
       internalData.roomObj?.Yp();
     };
 
-    this.stopGame = function(){
+    this.stopGame = function () {
       internalData.roomObj?.Zp();
     };
 
-    this.pauseGame = function(){
+    this.pauseGame = function () {
       internalData.roomObj?.Mp();
     };
 
-    this.autoTeams = function(){
+    this.autoTeams = function () {
       internalData.roomObj?.Dp();
     };
 
-    this.lockTeams = function(){
-      internalData.roomObj?.$p(!(internalData.roomState?.Pc));
+    this.lockTeams = function () {
+      internalData.roomObj?.$p(!internalData.roomState?.Pc);
     };
 
-    this.isGamePaused = function(){
-      return (120 == internalData.roomState?.K?.Oa);
+    this.isGamePaused = function () {
+      return 120 == internalData.roomState?.K?.Oa;
     };
 
-    this.resetTeams = function(){
+    this.resetTeams = function () {
       internalData.roomObj?.ee(p.fa);
       internalData.roomObj?.ee(p.xa);
     };
 
-    this.startRecording = function(){ // return true(success)/false(failure - already recording)
+    this.startRecording = function () {
+      // return true(success)/false(failure - already recording)
       return internalData.roomObj?._Qp_(true);
     };
 
-    this.stopRecording = function(){ // return Uint8Array(success)/null(failure - recording not started)
+    this.stopRecording = function () {
+      // return Uint8Array(success)/null(failure - recording not started)
       return internalData.roomObj?._Qp_(false);
     };
 
-    this.isRecording = function(){
-      return (internalData.roomObj?.Ed != null);
+    this.isRecording = function () {
+      return internalData.roomObj?.Ed != null;
     };
 
-    this.randTeams = function(){
+    this.randTeams = function () {
       internalData.roomObj?.Pp();
     };
 
-    this.setSync = function(value){ // host-only
+    this.setSync = function (value) {
+      // host-only
       internalData.roomObj?.ya?.T.ko(value);
     };
 
-    this.leave = function(){
+    this.leave = function () {
       internalData.roomObj?.de();
     };
 
-    this.setCurrentStadium = function(stadium, onError){
+    this.setCurrentStadium = function (stadium, onError) {
       try {
         internalData.roomObj?.og(stadium);
       } catch (k) {
-        b = k instanceof q ? k.Ta : k,
-        b instanceof SyntaxError ? onError(createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)) :  // "SyntaxError in line: " + r.Be(b.lineNumber, "")
-        b instanceof Bb ? onError(b.xp) : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
+        (b = k instanceof q ? k.Ta : k),
+          b instanceof SyntaxError
+            ? onError(
+                createError(ErrorCodes.StadiumParseSyntaxError, b.lineNumber)
+              ) // "SyntaxError in line: " + r.Be(b.lineNumber, "")
+            : b instanceof Bb
+            ? onError(b.xp)
+            : onError(createError(ErrorCodes.StadiumParseUnknownError, b)); // "Error loading stadium file."
       }
     };
 
-    this.setTimeLimit = function(value){
+    this.setTimeLimit = function (value) {
       internalData.roomObj?.aq(value);
     };
 
-    this.setScoreLimit = function(value){
+    this.setScoreLimit = function (value) {
       internalData.roomObj?.Tp(value);
     };
 
-    this.changeTeam = function(teamId){
-      switch (teamId){
-        case 0: { 
+    this.changeTeam = function (teamId) {
+      switch (teamId) {
+        case 0: {
           internalData.roomObj?.mg(internalData.roomObj.ya.uc, p.Ia);
-          break; 
+          break;
         }
-        case 1: { 
+        case 1: {
           internalData.roomObj?.mg(internalData.roomObj.ya.uc, p.fa);
-          break; 
+          break;
         }
-        case 2: { 
+        case 2: {
           internalData.roomObj?.mg(internalData.roomObj.ya.uc, p.xa);
-          break; 
+          break;
         }
       }
     };
 
-    this.resetTeam = function(teamId){
-      switch (teamId){
-        case 0: { 
-          internalData.roomObj?.ee(p.Ia); 
-          break; 
+    this.resetTeam = function (teamId) {
+      switch (teamId) {
+        case 0: {
+          internalData.roomObj?.ee(p.Ia);
+          break;
         }
-        case 1: { 
-          internalData.roomObj?.ee(p.fa); 
-          break; 
+        case 1: {
+          internalData.roomObj?.ee(p.fa);
+          break;
         }
-        case 2: { 
-          internalData.roomObj?.ee(p.xa); 
-          break; 
+        case 2: {
+          internalData.roomObj?.ee(p.xa);
+          break;
         }
       }
     };
 
-    this.setPlayerTeam = function(playerId, teamId){
-      switch (teamId){
-        case 0: { 
+    this.setPlayerTeam = function (playerId, teamId) {
+      switch (teamId) {
+        case 0: {
           internalData.roomObj?.mg(playerId, p.Ia);
-          break; 
+          break;
         }
-        case 1: { 
+        case 1: {
           internalData.roomObj?.mg(playerId, p.fa);
-          break; 
+          break;
         }
-        case 2: { 
+        case 2: {
           internalData.roomObj?.mg(playerId, p.xa);
-          break; 
+          break;
         }
       }
     };
 
-    this.setPlayerAdmin = function(playerId, isAdmin){
+    this.setPlayerAdmin = function (playerId, isAdmin) {
       var msg = sa.la(playerId, isAdmin);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya?.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya?.ra(msg);
     };
 
-    this.kickPlayer = function(playerId, reason, isBanning){
+    this.kickPlayer = function (playerId, reason, isBanning) {
       var msg = Y.la(playerId, reason || "", isBanning);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya?.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya?.ra(msg);
     };
 
-
-
-    
     // all fake functions here are host-only:
 
-    this.fakePlayerJoin = function(id, name, flag, avatar, conn, auth){ // id is uint16. to avoid desync, use 0<=id<=65535 and follow basro's all other limitations. 
+    this.fakePlayerJoin = function (id, name, flag, avatar, conn, auth) {
+      // id is uint16. to avoid desync, use 0<=id<=65535 and follow basro's all other limitations.
       var msg = oa.la(id, name, flag, avatar, conn, auth);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya?.ra(msg);
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya?.ra(msg);
     };
 
-    this.fakePlayerLeave = function(playerId){ // playerId=0 -> desync.
+    this.fakePlayerLeave = function (playerId) {
+      // playerId=0 -> desync.
       var playerObj = internalData.roomObj?.ya.T.na(playerId);
-      if (!playerObj)
-        return;
+      if (!playerObj) return;
       var msg = Y.la(playerId, null, true);
-      internalData.execOperationReceivedOnHost(msg)!=false && internalData.roomObj?.ya?.ra(msg);
-      return { // return the old data in case you want to use it to reconstruct the original player object.
-        id: playerObj.V, 
-        name: playerObj.w, 
-        flag: playerObj.Kd, 
-        avatar: playerObj.Xb, 
-        conn: playerObj.conn, 
-        auth: playerObj.auth
+      internalData.execOperationReceivedOnHost(msg) != false &&
+        internalData.roomObj?.ya?.ra(msg);
+      return {
+        // return the old data in case you want to use it to reconstruct the original player object.
+        id: playerObj.V,
+        name: playerObj.w,
+        flag: playerObj.Kd,
+        avatar: playerObj.Xb,
+        conn: playerObj.conn,
+        auth: playerObj.auth,
       };
     };
 
-    function fakeSend(id, msg){
-      internalData.execOperationReceivedOnHost(msg, undefined, id)!=false && internalData.roomObj?.ya?.ra(msg);
+    function fakeSend(id, msg) {
+      internalData.execOperationReceivedOnHost(msg, undefined, id) != false &&
+        internalData.roomObj?.ya?.ra(msg);
     }
 
-    this.fakeSendPlayerInput = function(input, byId){
+    this.fakeSendPlayerInput = function (input, byId) {
       var b = new Ga();
       b.input = input;
       fakeSend(byId, b);
     };
 
-    this.fakeSendPlayerChat = function(msg,/* targetId,*/ byId){
+    this.fakeSendPlayerChat = function (msg, /* targetId,*/ byId) {
       var b = new Na();
       b.Tc = msg;
       fakeSend(byId, b);
@@ -10063,15 +10539,16 @@ function abcHaxballAPI(window, config){
       */
     };
 
-    this.fakeSetPlayerChatIndicator = function(value, byId){
+    this.fakeSetPlayerChatIndicator = function (value, byId) {
       fakeSend(byId, na.la(value));
     };
 
-    this.fakeSetPlayerAvatar = function(value, byId){
+    this.fakeSetPlayerAvatar = function (value, byId) {
       fakeSend(byId, ra.la(value));
     };
 
-    this.fakeSetStadium = function(value, byId){ // only works if game is stopped
+    this.fakeSetStadium = function (value, byId) {
+      // only works if game is stopped
       fakeSend(byId, qa.la(value));
     };
     /*
@@ -10079,60 +10556,59 @@ function abcHaxballAPI(window, config){
       fakeSend(byId, rb.la(msg, color, style, sound));
     };
     */
-    this.fakeStartGame = function(byId){
+    this.fakeStartGame = function (byId) {
       fakeSend(byId, new Ma());
     };
 
-    this.fakeStopGame = function(byId){
+    this.fakeStopGame = function (byId) {
       fakeSend(byId, new La());
     };
 
-    this.fakeSetGamePaused = function(value, byId){
+    this.fakeSetGamePaused = function (value, byId) {
       var a = new Oa();
       a.Bf = value;
       fakeSend(byId, a);
     };
 
-    this.fakeSetScoreLimit = function(value, byId){
+    this.fakeSetScoreLimit = function (value, byId) {
       fakeSend(byId, da.la(0, value));
     };
 
-    this.fakeSetTimeLimit = function(value, byId){
+    this.fakeSetTimeLimit = function (value, byId) {
       fakeSend(byId, da.la(1, value));
     };
 
-    this.fakeSetTeamsLock = function(value, byId){
+    this.fakeSetTeamsLock = function (value, byId) {
       fakeSend(byId, pa.la(value));
     };
 
-    this.fakeAutoTeams = function(byId){
+    this.fakeAutoTeams = function (byId) {
       fakeSend(byId, new Qa());
     };
 
-    this.fakeSetPlayerTeam = function(playerId, teamId, byId){
+    this.fakeSetPlayerTeam = function (playerId, teamId, byId) {
       var team = p.byId[teamId];
-      if (!team)
-        return;
+      if (!team) return;
       fakeSend(byId, S.la(playerId, team));
     };
 
-    this.fakeSetKickRateLimit = function(min, rate, burst, byId){
+    this.fakeSetKickRateLimit = function (min, rate, burst, byId) {
       fakeSend(byId, ma.la(min, rate, burst));
     };
 
-    this.fakeSetTeamColors = function(teamId, angle, colors, byId){
+    this.fakeSetTeamColors = function (teamId, angle, colors, byId) {
       fakeSend(byId, ub.__cq__(teamId, angle, ...colors));
     };
 
-    this.fakeSetPlayerAdmin = function(playerId, value, byId){
+    this.fakeSetPlayerAdmin = function (playerId, value, byId) {
       fakeSend(byId, sa.la(playerId, value));
     };
 
-    this.fakeKickPlayer = function(playerId, reason, ban, byId){
+    this.fakeKickPlayer = function (playerId, reason, ban, byId) {
       fakeSend(byId, Y.la(playerId, reason, ban));
     };
 
-    this.fakeSetPlayerSync = function(value, byId){
+    this.fakeSetPlayerSync = function (value, byId) {
       fakeSend(byId, ta.la(value));
     };
     /*
@@ -10148,389 +10624,384 @@ function abcHaxballAPI(window, config){
     };
     */
 
-    this.getPlayer = function(id){
-      return internalData.roomObj.ya.T.I.filter((x)=>x.V==id)[0];
+    this.getPlayer = function (id) {
+      return internalData.roomObj.ya.T.I.filter((x) => x.V == id)[0];
     };
 
-    this.getBall = function(extrapolated = true){
-      var p = extrapolated ? internalData.extrapolatedRoomState?.K : internalData.roomState?.K;
+    this.getBall = function (extrapolated = true) {
+      var p = extrapolated
+        ? internalData.extrapolatedRoomState?.K
+        : internalData.roomState?.K;
       return p?.ta.F[0];
     };
 
-    this.getDiscs = function(extrapolated = true){
-      var p = extrapolated ? internalData.extrapolatedRoomState?.K : internalData.roomState?.K;
+    this.getDiscs = function (extrapolated = true) {
+      var p = extrapolated
+        ? internalData.extrapolatedRoomState?.K
+        : internalData.roomState?.K;
       return p?.ta.F;
     };
 
-    this.getDisc = function(discId, extrapolated = true){
-      var p = extrapolated ? internalData.extrapolatedRoomState?.K : internalData.roomState?.K;
+    this.getDisc = function (discId, extrapolated = true) {
+      var p = extrapolated
+        ? internalData.extrapolatedRoomState?.K
+        : internalData.roomState?.K;
       return p?.ta.F[discId];
     };
 
-    this.getPlayerDisc = function(playerId, extrapolated = true){
-      var p = extrapolated ? internalData.extrapolatedRoomState?.K : internalData.roomState?.K;
-      var a1 = p?.ta.F, a2 = internalData.roomObj?.ya?.T?.S.F;
-      if (!a1 || !a2)
-        return;
-      for (var i=a2.length;i<a1.length;i++)
-        if (a1[i].playerId==playerId)
-          return a1[i];
+    this.getPlayerDisc = function (playerId, extrapolated = true) {
+      var p = extrapolated
+        ? internalData.extrapolatedRoomState?.K
+        : internalData.roomState?.K;
+      var a1 = p?.ta.F,
+        a2 = internalData.roomObj?.ya?.T?.S.F;
+      if (!a1 || !a2) return;
+      for (var i = a2.length; i < a1.length; i++)
+        if (a1[i].playerId == playerId) return a1[i];
     };
 
-    this.getPlayerDisc_exp = function(playerId){
-      return internalData.roomObj?.ya?.T?.I.filter((x)=>x.V==playerId)[0]?.H;
+    this.getPlayerDisc_exp = function (playerId) {
+      return internalData.roomObj?.ya?.T?.I.filter((x) => x.V == playerId)[0]
+        ?.H;
     };
 
     Object.defineProperty(this, "name", {
       get: function () {
         return internalData.roomObj.ya.T.jc;
-      }
+      },
     });
 
     Object.defineProperty(this, "link", {
       get: function () {
         return internalData.roomObj.Bg;
-      }
+      },
     });
 
     Object.defineProperty(this, "timeLimit", {
       get: function () {
         return internalData.roomObj.ya.T.Da;
-      }
+      },
     });
 
     Object.defineProperty(this, "scoreLimit", {
       get: function () {
         return internalData.roomObj.ya.T.ib;
-      }
+      },
     });
 
     Object.defineProperty(this, "redScore", {
       get: function () {
-        return internalData.extrapolatedRoomState?.K.Pb;
-      }
+        return internalData.extrapolatedRoomState?.K?.Pb;
+      },
     });
 
     Object.defineProperty(this, "blueScore", {
       get: function () {
-        return internalData.extrapolatedRoomState?.K.Kb;
-      }
+        return internalData.extrapolatedRoomState?.K?.Kb;
+      },
     });
 
     Object.defineProperty(this, "timeElapsed", {
       get: function () {
-        return internalData.extrapolatedRoomState?.K.Hc;
-      }
+        return internalData.extrapolatedRoomState?.K?.Hc;
+      },
     });
 
     Object.defineProperty(this, "stadium", {
       get: function () {
         return internalData.roomObj.ya.T.S;
-      }
+      },
     });
 
     Object.defineProperty(this, "players", {
       get: function () {
         return internalData.roomObj.ya.T.I;
-      }
+      },
     });
-
 
     // -------------------------------------------
     // sandbox mode functions:
     // -------------------------------------------
 
-    this.takeSnapshot = function(){
+    this.takeSnapshot = function () {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.copy();
     };
 
-    this.exportStadium = function(){
+    this.exportStadium = function () {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.exportStadium();
     };
 
-    this.createVertex = function(data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.createVertex = function (data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createVertex(data);
     };
 
-    this.createSegment = function(data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.createSegment = function (data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createSegment(data);
     };
 
-    this.createSegmentFromObj = function(data) { // data: { v0: vertexObj, v1: vertexObj, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.createSegmentFromObj = function (data) {
+      // data: { v0: vertexObj, v1: vertexObj, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createSegmentFromObj(data);
     };
 
-    this.createGoal = function(data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    this.createGoal = function (data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createGoal(data);
     };
 
-    this.createPlane = function(data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.createPlane = function (data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createPlane(data);
     };
 
-    this.createDisc = function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    this.createDisc = function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createDisc(data);
     };
 
-    this.createJoint = function(data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    this.createJoint = function (data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createJoint(data);
     };
 
-    this.createJointFromObj = function(data) { // data: { d0: discObj, d1: discObj, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    this.createJointFromObj = function (data) {
+      // data: { d0: discObj, d1: discObj, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.createJointFromObj(data);
     };
 
-    this.addVertex = function(data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.addVertex = function (data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addVertex(data);
     };
 
-    this.addSegment = function(data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.addSegment = function (data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addSegment(data);
     };
 
-    this.addGoal = function(data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    this.addGoal = function (data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addGoal(data);
     };
 
-    this.addPlane = function(data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.addPlane = function (data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addPlane(data);
     };
 
-    this.addDisc = function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    this.addDisc = function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addDisc(data);
     };
 
-    this.addJoint = function(data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    this.addJoint = function (data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addJoint(data);
     };
 
-    this.addSpawnPoint = function(data) { // data: { x: number, y: number, team: ("red" || "blue") }
+    this.addSpawnPoint = function (data) {
+      // data: { x: number, y: number, team: ("red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addSpawnPoint(data);
     };
 
-    this.addPlayer = function(data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, id: integer, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
+    this.addPlayer = function (data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, id: integer, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.addPlayer(data);
     };
 
-    this.findVertexIndicesOfSegmentObj = function(segmentObj){
+    this.findVertexIndicesOfSegmentObj = function (segmentObj) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.findVertexIndicesOfSegmentObj(segmentObj);
     };
 
-    this.findVertexIndicesOfSegment = function(segmentIndex){
+    this.findVertexIndicesOfSegment = function (segmentIndex) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.findVertexIndicesOfSegment(segmentIndex);
     };
 
-    this.updateVertex = function(idx, data) { // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.updateVertex = function (idx, data) {
+      // data: { x: number, y: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateVertex(idx, data);
     };
 
-    this.updateSegment = function(idx, data) { // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.updateSegment = function (idx, data) {
+      // data: { v0: number, v1: number, color: ("transparent" || string || [r: number, g: number, b: number]), bias: number, (curve: number || curveF: number), vis: boolean, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateSegment(idx, data);
     };
 
-    this.updateGoal = function(idx, data) { // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
+    this.updateGoal = function (idx, data) {
+      // data: { p0: [x: number, y: number], p1: [x: number, y: number], team: ("red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateGoal(idx, data);
     };
 
-    this.updatePlane = function(idx, data) { // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
+    this.updatePlane = function (idx, data) {
+      // data: { normal: [x: number, y: number], dist: number, bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updatePlane(idx, data);
     };
 
-    this.updateDisc = function(idx, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    this.updateDisc = function (idx, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateDisc(idx, data);
     };
 
-    this.updateDiscObj = function(discObj, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
+    this.updateDiscObj = function (discObj, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, color: ("transparent" || string || [r: number, g: number, b: number]), bCoef: number, cMask: array of string, cGroup: array of string }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateDiscObj(discObj, data);
     };
 
-    this.updateJoint = function(idx, data) { // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
+    this.updateJoint = function (idx, data) {
+      // data: { d0: number, d1: number, color: ("transparent" || string || [r: number, g: number, b: number]), strength: "rigid" || number, length: null || number || [min: number, max: number] }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateJoint(idx, data);
     };
 
-    this.updateSpawnPoint = function(idx, team, data) { // data: { x: number, y: number, team: ("red" || "blue") }
+    this.updateSpawnPoint = function (idx, team, data) {
+      // data: { x: number, y: number, team: ("red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateSpawnPoint(idx, team, data);
     };
 
-    this.updatePlayer = function(playerId, data) { // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
+    this.updatePlayer = function (playerId, data) {
+      // data: { pos: [x: number, y: number], speed: [x: number, y: number], gravity: [x: number, y: number], radius: number, invMass: number, damping: number, bCoef: number, cMask: array of string, cGroup: array of string, name: string, avatar: string, flag: string, team: ("spec" || "red" || "blue") }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updatePlayer(playerId, data);
     };
 
-    this.removeVertex = function(idx) {
+    this.removeVertex = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeVertex(idx);
     };
 
-    this.removeSegment = function(idx) {
+    this.removeSegment = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeSegment(idx);
     };
 
-    this.removeGoal = function(idx) {
+    this.removeGoal = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeGoal(idx);
     };
 
-    this.removePlane = function(idx) {
+    this.removePlane = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removePlane(idx);
     };
 
-    this.removeDisc = function(idx) {
+    this.removeDisc = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeDisc(idx);
     };
 
-    this.removeJoint = function(idx) {
+    this.removeJoint = function (idx) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeJoint(idx);
     };
 
-    this.removeSpawnPoint = function(idx, team) {
+    this.removeSpawnPoint = function (idx, team) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removeSpawnPoint(idx, team);
     };
 
-    this.removePlayer = function(playerId) {
+    this.removePlayer = function (playerId) {
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.removePlayer(playerId);
     };
 
-    this.updateStadiumPlayerPhysics = function(data) { // data: { radius: number, gravity: [x: number, y: number], invMass: number, bCoef: number, cGroup: array of string, damping: number, kickingDamping: number, acceleration: number, kickingAcceleration: number, kickStrength: number, kickback: number }
+    this.updateStadiumPlayerPhysics = function (data) {
+      // data: { radius: number, gravity: [x: number, y: number], invMass: number, bCoef: number, cGroup: array of string, damping: number, kickingDamping: number, acceleration: number, kickingAcceleration: number, kickStrength: number, kickback: number }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateStadiumPlayerPhysics(data);
     };
 
-    this.updateStadiumBg = function(data) { // data: { type: 0("none") || 1("grass") || 2("hockey"), width: number, height: number, kickOffRadius: number, cornerRadius: number, color: ("transparent" || string || [r: number, g: number, b: number]), goalLine: number }
+    this.updateStadiumBg = function (data) {
+      // data: { type: 0("none") || 1("grass") || 2("hockey"), width: number, height: number, kickOffRadius: number, cornerRadius: number, color: ("transparent" || string || [r: number, g: number, b: number]), goalLine: number }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateStadiumBg(data);
     };
 
-    this.updateStadiumGeneral = function(data) { // data: { name: string, width: number, height: number, maxViewWidth: number, cameraFollow: 0("") || 1("player"), spawnDistance: number, kickOffReset: true("full") || false("partial"), canBeStored: boolean }
+    this.updateStadiumGeneral = function (data) {
+      // data: { name: string, width: number, height: number, maxViewWidth: number, cameraFollow: 0("") || 1("player"), spawnDistance: number, kickOffReset: true("full") || false("partial"), canBeStored: boolean }
       var o = internalData.roomObj?.ya?.T;
-      if (!o)
-        return;
+      if (!o) return;
       return o.updateStadiumGeneral(data);
     };
 
     // -------------------------------------------
 
-    this.updatePlugin = function(pluginIndex, newPluginObj){
+    this.updatePlugin = function (pluginIndex, newPluginObj) {
       var oldPluginObj = that.plugins[pluginIndex];
       if (!oldPluginObj)
         throw createError(ErrorCodes.PluginNotFoundError, pluginIndex); // "Plugin not found at index " + pluginIndex
-      var {name, active} = oldPluginObj;
-      if (name != newPluginObj.name) // plugin name should not change, otherwise some bugs are possible.
+      var { name, active } = oldPluginObj;
+      if (name != newPluginObj.name)
+        // plugin name should not change, otherwise some bugs are possible.
         throw createError(ErrorCodes.PluginNameChangeNotAllowedError); // "Plugin name should not change"
-      if (active)
-        that.setPluginActive(name, false);
+      if (active) that.setPluginActive(name, false);
       A.i(oldPluginObj.finalize);
       oldPluginObj.room = null;
       that.plugins[pluginIndex] = newPluginObj;
@@ -10538,18 +11009,19 @@ function abcHaxballAPI(window, config){
       newPluginObj.room = that;
       y.i(newPluginObj.initialize);
       ia.i(that._onPluginUpdate, oldPluginObj, newPluginObj);
-      if (active){
+      if (active) {
         newPluginObj.active = false; // to force-trigger plugin activation event
         that.setPluginActive(name, true);
       }
     };
 
-    this.updateLibrary = function(libraryIndex, newLibraryObj){
+    this.updateLibrary = function (libraryIndex, newLibraryObj) {
       var oldLibraryObj = that.libraries[libraryIndex];
       if (!oldLibraryObj)
         throw createError(ErrorCodes.LibraryNotFoundError, libraryIndex); // "Library not found at index " + libraryIndex
-      var {name} = oldLibraryObj;
-      if (name != newLibraryObj.name) // library name should not change, otherwise some bugs are possible.
+      var { name } = oldLibraryObj;
+      if (name != newLibraryObj.name)
+        // library name should not change, otherwise some bugs are possible.
         throw createError(ErrorCodes.LibraryNameChangeNotAllowedError); // "Library name should not change"
       A.i(oldLibraryObj.finalize);
       oldLibraryObj.room = null;
@@ -10560,239 +11032,555 @@ function abcHaxballAPI(window, config){
       ia.i(that._onLibraryUpdate, oldLibraryObj, newLibraryObj);
     };
 
-    if (internalData.pluginMechanismActive){
-      this.libraries.forEach((l)=>{
+    if (internalData.pluginMechanismActive) {
+      this.libraries.forEach((l) => {
         l.room = that;
         y.i(l.initialize);
       });
-      
+
       cfg.room = that;
       y.i(cfg.initialize);
-      if (renderer){
+      if (renderer) {
         renderer.room = that;
         y.i(renderer.initialize);
       }
 
-      this.plugins.forEach((p)=>{
+      this.plugins.forEach((p) => {
         p.room = that;
         y.i(p.initialize);
       });
 
-      this.activePlugins.forEach((p)=>{
+      this.activePlugins.forEach((p) => {
         y.i(that._onPluginActiveChange, p);
       });
     }
   }
 
-  function Library(name, metadata=null){
+  function Library(name, metadata = null) {
     this.name = name;
     this.defineMetadata(metadata);
   }
 
   // These functions should be overridden when writing a GUI application using this API, before using this Plugin class.
-  Library.prototype.defineMetadata = function(x){},//x={name, version, author, description}
-  Library.prototype.defineVariable = function(x){//x={name, type, value, range, description}
-    var { name, value } = x, that = this;
-    if (config.noVariableValueChangeEvent)
-      that[name] = value;
-    else
-      Object.defineProperty(that, name, {
-        get: ()=>{
-          return value;
-        },
-        set: (newValue)=>{
-          var oldValue = value;
-          if (newValue==oldValue)
-            return;
-          value = newValue;
-          that.room?._onVariableValueChange(that, name, oldValue, value);
-        }
-      });
-  };
+  (Library.prototype.defineMetadata = function (x) {}), //x={name, version, author, description}
+    (Library.prototype.defineVariable = function (x) {
+      //x={name, type, value, range, description}
+      var { name, value } = x,
+        that = this;
+      if (config.noVariableValueChangeEvent) that[name] = value;
+      else
+        Object.defineProperty(that, name, {
+          get: () => {
+            return value;
+          },
+          set: (newValue) => {
+            var oldValue = value;
+            if (newValue == oldValue) return;
+            value = newValue;
+            that.room?._onVariableValueChange(that, name, oldValue, value);
+          },
+        });
+    });
 
-  function RoomConfig(metadata=null){
+  function RoomConfig(metadata = null) {
     this.defineMetadata(metadata);
   }
 
   // These functions should be overridden when writing a GUI application using this API, before using this RoomConfig class.
-  RoomConfig.prototype.defineMetadata = function(x){},//x={name, version, author, description, allowFlags}
-  RoomConfig.prototype.defineVariable = function(x){//x={name, type, value, range, description}
-    var { name, value } = x, that = this;
-    if (config.noVariableValueChangeEvent)
-      that[name] = value;
-    else
-      Object.defineProperty(that, name, {
-        get: ()=>{
-          return value;
-        },
-        set: (newValue)=>{
-          var oldValue = value;
-          if (newValue==oldValue)
-            return;
-          value = newValue;
-          that.room?._onVariableValueChange(that, name, oldValue, value);
-        }
-      });
-  };
+  (RoomConfig.prototype.defineMetadata = function (x) {}), //x={name, version, author, description, allowFlags}
+    (RoomConfig.prototype.defineVariable = function (x) {
+      //x={name, type, value, range, description}
+      var { name, value } = x,
+        that = this;
+      if (config.noVariableValueChangeEvent) that[name] = value;
+      else
+        Object.defineProperty(that, name, {
+          get: () => {
+            return value;
+          },
+          set: (newValue) => {
+            var oldValue = value;
+            if (newValue == oldValue) return;
+            value = newValue;
+            that.room?._onVariableValueChange(that, name, oldValue, value);
+          },
+        });
+    });
 
-  function Renderer(metadata=null){
+  function Renderer(metadata = null) {
     this.defineMetadata(metadata);
   }
 
   // These functions should be overridden when writing a GUI application using this API, before using this Renderer class.
-  Renderer.prototype.defineMetadata = function(x){},//x={name, version, author, description}
-  Renderer.prototype.defineVariable = function(x){//x={name, type, value, range, description}
-    var { name, value } = x, that = this;
-    if (config.noVariableValueChangeEvent)
-      that[name] = value;
-    else
-      Object.defineProperty(that, name, {
-        get: ()=>{
-          return value;
-        },
-        set: (newValue)=>{
-          var oldValue = value;
-          if (newValue==oldValue)
-            return;
-          value = newValue;
-          that.room?._onVariableValueChange(that, name, oldValue, value);
-        }
-      });
-  };
+  (Renderer.prototype.defineMetadata = function (x) {}), //x={name, version, author, description}
+    (Renderer.prototype.defineVariable = function (x) {
+      //x={name, type, value, range, description}
+      var { name, value } = x,
+        that = this;
+      if (config.noVariableValueChangeEvent) that[name] = value;
+      else
+        Object.defineProperty(that, name, {
+          get: () => {
+            return value;
+          },
+          set: (newValue) => {
+            var oldValue = value;
+            if (newValue == oldValue) return;
+            value = newValue;
+            that.room?._onVariableValueChange(that, name, oldValue, value);
+          },
+        });
+    });
 
-  function Plugin(name, active=false, metadata=null){ // name is important, we activate/deactivate plugins by their names. if active=true, plugin is activated just after initialization.
+  function Plugin(name, active = false, metadata = null) {
+    // name is important, we activate/deactivate plugins by their names. if active=true, plugin is activated just after initialization.
     this.name = name;
     this.defineMetadata(metadata);
     this.defineVariable({
       name: "active",
-      description: "Whether this plugin is active or not.", 
+      description: "Whether this plugin is active or not.",
       type: VariableType.Boolean,
-      value: active
+      value: active,
     });
   }
 
   // These functions should be overridden when writing a GUI application using this API, before using this Plugin class.
-  Plugin.prototype.defineMetadata = function(x){},//x={version, author, description, allowFlags}
-  Plugin.prototype.defineVariable = function(x){//x={name, type, value, range, description}
-    var { name, value } = x, that = this;
-    if (config.noVariableValueChangeEvent)
-      that[name] = value;
-    else
-      Object.defineProperty(that, name, {
-        get: ()=>{
-          return value;
-        },
-        set: (newValue)=>{
-          var oldValue = value;
-          if (newValue==oldValue)
-            return;
-          value = newValue;
-          that.room?._onVariableValueChange(that, name, oldValue, value);
-        }
-      });
-  };
+  (Plugin.prototype.defineMetadata = function (x) {}), //x={version, author, description, allowFlags}
+    (Plugin.prototype.defineVariable = function (x) {
+      //x={name, type, value, range, description}
+      var { name, value } = x,
+        that = this;
+      if (config.noVariableValueChangeEvent) that[name] = value;
+      else
+        Object.defineProperty(that, name, {
+          get: () => {
+            return value;
+          },
+          set: (newValue) => {
+            var oldValue = value;
+            if (newValue == oldValue) return;
+            value = newValue;
+            that.room?._onVariableValueChange(that, name, oldValue, value);
+          },
+        });
+    });
 
   const AllowFlags = {
     JoinRoom: 1,
-    CreateRoom: 2
+    CreateRoom: 2,
   };
 
-  function createEventCallback(name, metadata){
+  function createEventCallback(name, metadata) {
     eventCallbacks.push({ name });
   }
 
-  function destroyEventCallback(name){
-    var idx = eventCallbacks.findIndex((x)=>x.name==name);
-    if (idx<0)
-      return;
+  function destroyEventCallback(name) {
+    var idx = eventCallbacks.findIndex((x) => x.name == name);
+    if (idx < 0) return;
     eventCallbacks.splice(idx, 1);
   }
 
   createEventCallback("PlayerObjectCreated", { params: ["player object"] });
   createEventCallback("RoomLink", { params: ["room link"] });
-  createEventCallback("PlayerBallKick", { params: ["id of the player that triggered this event"] });
+  createEventCallback("PlayerBallKick", {
+    params: ["id of the player that triggered this event"],
+  });
   createEventCallback("TeamGoal", { params: ["team id"] });
   createEventCallback("GameEnd", { params: ["team id that won the game"] });
   createEventCallback("GameTick", { params: [] });
-  createEventCallback("PlayerSyncChange", { params: ["player id", "new sync value"] });
-  createEventCallback("Announcement", { params: ["announcement message", "announcement color in #rrggbb format", "announcement style (a small number)", "announcement sound type (a small number)"] });
+  createEventCallback("PlayerSyncChange", {
+    params: ["player id", "new sync value"],
+  });
+  createEventCallback("Announcement", {
+    params: [
+      "announcement message",
+      "announcement color in #rrggbb format",
+      "announcement style (a small number)",
+      "announcement sound type (a small number)",
+    ],
+  });
   createEventCallback("KickOff", { params: [] });
-  createEventCallback("AutoTeams", { params: ["1st player id", "1st team id", "2nd player id (or null)", "2nd team id (or null)", "id of the player that triggered this event"] });
-  createEventCallback("ScoreLimitChange", { params: ["new score limit value", "id of the player that triggered this event"] });
-  createEventCallback("TimeLimitChange", { params: ["new time limit value", "id of the player that triggered this event"] });
-  createEventCallback("PlayerAdminChange", { params: ["id of the player whose admin status has changed", "new admin status value of the player", "id of the player that triggered this event"] });
-  createEventCallback("PlayerAvatarChange", { params: ["id of the player that triggered this event", "new avatar value of the player"] });
-  createEventCallback("PlayerHeadlessAvatarChange", { params: ["id of the player that triggered this event", "new avatar value of the player"] });
-  createEventCallback("PlayersOrderChange", { params: ["player id list with desired order", "whether to add the players to the top(or bottom) of the list"] });
-  createEventCallback("PlayerTeamChange", { params: ["id of the player whose team is changed", "id of the new team of the player", "id of the player that triggered this event"] });
-  createEventCallback("StadiumChange", { params: ["new stadium object that is being applied to the room", "id of the player that triggered this event"] });
-  createEventCallback("TeamColorsChange", { params: ["id of the team whose colors are being changed", "new team colors", "id of the player that triggered this event"] });
-  createEventCallback("TeamsLockChange", { params: ["new teams lock value", "id of the player that triggered this event"] });
-  createEventCallback("PlayerJoin", { params: ["original object for the player that has just joined the room"] });
-  createEventCallback("GamePauseChange", { params: ["new paused status of the room", "id of the player that triggered this event"] });
-  createEventCallback("PlayerChat", { params: ["id of the player that triggered this event", "chat message that was sent"] });
-  createEventCallback("PlayerInputChange", { params: ["id of the player that triggered this event", "new input value of the player"] });
-  createEventCallback("PlayerChatIndicatorChange", { params: ["id of the player that triggered this event", "new chat indicator value of the player"] });
-  createEventCallback("PlayerLeave", { params: ["original object for the player that has just left the room", "reason for leaving the room", "whether the player was banned or not", "id of the player that triggered this event"] });
-  createEventCallback("SetDiscProperties", { params: ["id of the disc or the player that just had its properties changed", "whether the changed object is a disc or a player", "data array 1", "data array 2"] });
-  createEventCallback("KickRateLimitChange", { params: ["new min value of kick rate limit", "new rate value of kick rate limit", "new burst value of kick rate limit", "id of the player that triggered this event"] });
-  createEventCallback("GameStart", { params: ["id of the player that triggered this event"] });
-  createEventCallback("GameStop", { params: ["id of the player that triggered this event"] });
-  createEventCallback("PingData", { params: ["all ping values of the current room as an array"] });
-  createEventCallback("CollisionDiscVsDisc", { params: ["id of the collided 1st disc", "player id(if exists) of the collided 1st disc", "id of the collided 2nd disc", "player id(if exists) of the collided 2nd disc"] });
-  createEventCallback("CollisionDiscVsSegment", { params: ["id of the collided disc", "player id(if exists) of the collided disc", "id of the collided segment"] });
-  createEventCallback("CollisionDiscVsPlane", { params: ["id of the collided disc", "player id(if exists) of the collided disc", "id of the collided plane"] });
+  createEventCallback("AutoTeams", {
+    params: [
+      "1st player id",
+      "1st team id",
+      "2nd player id (or null)",
+      "2nd team id (or null)",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("ScoreLimitChange", {
+    params: [
+      "new score limit value",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("TimeLimitChange", {
+    params: [
+      "new time limit value",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("PlayerAdminChange", {
+    params: [
+      "id of the player whose admin status has changed",
+      "new admin status value of the player",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("PlayerAvatarChange", {
+    params: [
+      "id of the player that triggered this event",
+      "new avatar value of the player",
+    ],
+  });
+  createEventCallback("PlayerHeadlessAvatarChange", {
+    params: [
+      "id of the player that triggered this event",
+      "new avatar value of the player",
+    ],
+  });
+  createEventCallback("PlayersOrderChange", {
+    params: [
+      "player id list with desired order",
+      "whether to add the players to the top(or bottom) of the list",
+    ],
+  });
+  createEventCallback("PlayerTeamChange", {
+    params: [
+      "id of the player whose team is changed",
+      "id of the new team of the player",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("StadiumChange", {
+    params: [
+      "new stadium object that is being applied to the room",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("TeamColorsChange", {
+    params: [
+      "id of the team whose colors are being changed",
+      "new team colors",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("TeamsLockChange", {
+    params: [
+      "new teams lock value",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("PlayerJoin", {
+    params: ["original object for the player that has just joined the room"],
+  });
+  createEventCallback("GamePauseChange", {
+    params: [
+      "new paused status of the room",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("PlayerChat", {
+    params: [
+      "id of the player that triggered this event",
+      "chat message that was sent",
+    ],
+  });
+  createEventCallback("PlayerInputChange", {
+    params: [
+      "id of the player that triggered this event",
+      "new input value of the player",
+    ],
+  });
+  createEventCallback("PlayerChatIndicatorChange", {
+    params: [
+      "id of the player that triggered this event",
+      "new chat indicator value of the player",
+    ],
+  });
+  createEventCallback("PlayerLeave", {
+    params: [
+      "original object for the player that has just left the room",
+      "reason for leaving the room",
+      "whether the player was banned or not",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("SetDiscProperties", {
+    params: [
+      "id of the disc or the player that just had its properties changed",
+      "whether the changed object is a disc or a player",
+      "data array 1",
+      "data array 2",
+    ],
+  });
+  createEventCallback("KickRateLimitChange", {
+    params: [
+      "new min value of kick rate limit",
+      "new rate value of kick rate limit",
+      "new burst value of kick rate limit",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("GameStart", {
+    params: ["id of the player that triggered this event"],
+  });
+  createEventCallback("GameStop", {
+    params: ["id of the player that triggered this event"],
+  });
+  createEventCallback("PingData", {
+    params: ["all ping values of the current room as an array"],
+  });
+  createEventCallback("CollisionDiscVsDisc", {
+    params: [
+      "id of the collided 1st disc",
+      "player id(if exists) of the collided 1st disc",
+      "id of the collided 2nd disc",
+      "player id(if exists) of the collided 2nd disc",
+    ],
+  });
+  createEventCallback("CollisionDiscVsSegment", {
+    params: [
+      "id of the collided disc",
+      "player id(if exists) of the collided disc",
+      "id of the collided segment",
+    ],
+  });
+  createEventCallback("CollisionDiscVsPlane", {
+    params: [
+      "id of the collided disc",
+      "player id(if exists) of the collided disc",
+      "id of the collided plane",
+    ],
+  });
   createEventCallback("TimeIsUp", { params: [] });
   createEventCallback("PositionsReset", { params: [] });
   createEventCallback("BansClear", { params: [] });
-  createEventCallback("ExtrapolationChange", { params: ["new extrapolation value"] });
+  createEventCallback("ExtrapolationChange", {
+    params: ["new extrapolation value"],
+  });
   createEventCallback("HandicapChange", { params: ["new handicap value"] });
-  createEventCallback("RoomRecaptchaModeChange", { params: ["new recaptcha mode value"] });
-  createEventCallback("RoomRecordingChange", { params: ["new value indicating whether the game is being recorded"] });
-  createEventCallback("RoomPropertiesChange", { params: ["new room properties"] });
-  createEventCallback("CustomEvent", { params: ["custom event type", "custom event data", "id of the player that triggered this event"] });
-  createEventCallback("PluginActiveChange", { params: ["the plugin object that has its active property changed"] });
-  createEventCallback("ConfigUpdate", { params: ["old roomConfig object", "new roomConfig object"] });
-  createEventCallback("RendererUpdate", { params: ["old renderer object", "new renderer object"] });
-  createEventCallback("PluginUpdate", { params: ["old plugin object", "new plugin object"] });
-  createEventCallback("LibraryUpdate", { params: ["old library object", "new library object"] });
-  createEventCallback("LanguageChange", { params: ["new language abbreviation"] });
+  createEventCallback("RoomRecaptchaModeChange", {
+    params: ["new recaptcha mode value"],
+  });
+  createEventCallback("RoomRecordingChange", {
+    params: ["new value indicating whether the game is being recorded"],
+  });
+  createEventCallback("RoomPropertiesChange", {
+    params: ["new room properties"],
+  });
+  createEventCallback("CustomEvent", {
+    params: [
+      "custom event type",
+      "custom event data",
+      "id of the player that triggered this event",
+    ],
+  });
+  createEventCallback("PluginActiveChange", {
+    params: ["the plugin object that has its active property changed"],
+  });
+  createEventCallback("ConfigUpdate", {
+    params: ["old roomConfig object", "new roomConfig object"],
+  });
+  createEventCallback("RendererUpdate", {
+    params: ["old renderer object", "new renderer object"],
+  });
+  createEventCallback("PluginUpdate", {
+    params: ["old plugin object", "new plugin object"],
+  });
+  createEventCallback("LibraryUpdate", {
+    params: ["old library object", "new library object"],
+  });
+  createEventCallback("LanguageChange", {
+    params: ["new language abbreviation"],
+  });
   if (!config.noVariableValueChangeEvent)
-    createEventCallback("VariableValueChange", { params: ["addon object", "variable name", "old value", "new value"] });
+    createEventCallback("VariableValueChange", {
+      params: ["addon object", "variable name", "old value", "new value"],
+    });
 
-  if (config.fixNames){
-    function _fixNames(classObj, nameArray){
+  if (config.fixNames) {
+    function _fixNames(classObj, nameArray) {
       var originalNames = Object.keys(new classObj());
-      nameArray.forEach((x, idx)=>{
-        if (!x)
-          return;
+      nameArray.forEach((x, idx) => {
+        if (!x) return;
         var name = originalNames[idx];
         Object.defineProperty(classObj.prototype, x, {
           get: function () {
             return this[name];
           },
-          set: function(v) {
+          set: function (v) {
             this[name] = v;
-          }
+          },
         });
       });
     }
-    _fixNames(ea, [null, null, "team", "disc", "kickRateMinTickCounter", "kickRateMaxTickCounter", "isKicking", "id", "input", "name", "ping", null, "flag", "sync", "headlessAvatar", "avatar", "avatarNumber", "isAdmin", null, null, null]);
-    _fixNames(p, ["rival", "id", "color", null, null, "name", "className", null, "colors"]);
+    _fixNames(ea, [
+      null,
+      null,
+      "team",
+      "disc",
+      "kickRateMinTickCounter",
+      "kickRateMaxTickCounter",
+      "isKicking",
+      "id",
+      "input",
+      "name",
+      "ping",
+      null,
+      "flag",
+      "sync",
+      "headlessAvatar",
+      "avatar",
+      "avatarNumber",
+      "isAdmin",
+      null,
+      null,
+      null,
+    ]);
+    _fixNames(p, [
+      "rival",
+      "id",
+      "color",
+      null,
+      null,
+      "name",
+      "className",
+      null,
+      "colors",
+    ]);
     _fixNames(ka, ["angle", "text", "inner"]);
     _fixNames(T, ["flag", "lon", "lat"]);
     _fixNames(B, ["id", "cGroup", "cMask", "bCoef", "pos"]);
-    _fixNames(E, ["normal", null, null, null, "center", "v0", "v1", "bias", "bCoef", "cMask", "cGroup", "curveF", "vis", "color"]);
+    _fixNames(E, [
+      "normal",
+      null,
+      null,
+      null,
+      "center",
+      "v0",
+      "v1",
+      "bias",
+      "bCoef",
+      "cMask",
+      "cGroup",
+      "curveF",
+      "vis",
+      "color",
+    ]);
     _fixNames(L, ["cGroup", "cMask", "bCoef", "dist", "normal"]);
     _fixNames(sb, ["team", "p1", "p0"]);
-    _fixNames(ua, ["cGroup", "cMask", "color", "damping", "invMass", "bCoef", "radius", "gravity", "speed", "pos"]);
+    _fixNames(ua, [
+      "cGroup",
+      "cMask",
+      "color",
+      "damping",
+      "invMass",
+      "bCoef",
+      "radius",
+      "gravity",
+      "speed",
+      "pos",
+    ]);
     _fixNames(nb, ["color", "strength", "maxLength", "minLength", "d1", "d0"]);
-    _fixNames(Eb, ["kickback", "radius", "cGroup", "gravity", "bCoef", "invMass", "damping", "acceleration", "kickingAcceleration", "kickingDamping", "kickStrength"]);
-    _fixNames(ca, [null, null, null, "id", "cGroup", "cMask", null, "color", "damping", "invMass", "bCoef", "radius", "gravity", "speed", "pos"]);
-    _fixNames(h, ["vertices", "segments", "planes", "goals", "discs", "joints", "redSpawnPoints", "blueSpawnPoints", "playerPhysics", "defaultStadiumId", "maxViewWidth", "cameraFollow", "canBeStored", "fullKickOffReset", "name", "width", "height", "bgType", "bgColor", "bgWidth", "bgHeight", "bgKickOffRadius", "bgCornerRadius", "spawnDistance", "bgGoalLine"]);
-    _fixNames(Fa, [null, null, "discs", "vertices", "planes", "segments", "joints"]);
-    _fixNames(O, [null, null, "pauseGameTickCounter", "timeElapsed", "blueScore", "redScore", null, "state", "goalTickCounter", "physicsState", "timeLimit", "scoreLimit", "stadium", null]);
-    _fixNames(fa, [null, null, "stadium", "kickRate_min", "kickRate_rate", null, "timeLimit", "scoreLimit", "teamsLocked", "gameState", "players", "name", "teamColors"]);
+    _fixNames(Eb, [
+      "kickback",
+      "radius",
+      "cGroup",
+      "gravity",
+      "bCoef",
+      "invMass",
+      "damping",
+      "acceleration",
+      "kickingAcceleration",
+      "kickingDamping",
+      "kickStrength",
+    ]);
+    _fixNames(ca, [
+      null,
+      null,
+      null,
+      "id",
+      "cGroup",
+      "cMask",
+      null,
+      "color",
+      "damping",
+      "invMass",
+      "bCoef",
+      "radius",
+      "gravity",
+      "speed",
+      "pos",
+    ]);
+    _fixNames(h, [
+      "vertices",
+      "segments",
+      "planes",
+      "goals",
+      "discs",
+      "joints",
+      "redSpawnPoints",
+      "blueSpawnPoints",
+      "playerPhysics",
+      "defaultStadiumId",
+      "maxViewWidth",
+      "cameraFollow",
+      "canBeStored",
+      "fullKickOffReset",
+      "name",
+      "width",
+      "height",
+      "bgType",
+      "bgColor",
+      "bgWidth",
+      "bgHeight",
+      "bgKickOffRadius",
+      "bgCornerRadius",
+      "spawnDistance",
+      "bgGoalLine",
+    ]);
+    _fixNames(Fa, [
+      null,
+      null,
+      "discs",
+      "vertices",
+      "planes",
+      "segments",
+      "joints",
+    ]);
+    _fixNames(O, [
+      null,
+      null,
+      "pauseGameTickCounter",
+      "timeElapsed",
+      "blueScore",
+      "redScore",
+      null,
+      "state",
+      "goalTickCounter",
+      "physicsState",
+      "timeLimit",
+      "scoreLimit",
+      "stadium",
+      null,
+    ]);
+    _fixNames(fa, [
+      null,
+      null,
+      "stadium",
+      "kickRate_min",
+      "kickRate_rate",
+      null,
+      "timeLimit",
+      "scoreLimit",
+      "teamsLocked",
+      "gameState",
+      "players",
+      "name",
+      "teamColors",
+    ]);
     _fixNames(Ua, [null, "data"]);
     _fixNames(rb, [null, "msg", null, null, "sound", "byId", "targetId"]);
     _fixNames(na, [null, "value", null, null, "byId"]);
@@ -10819,11 +11607,20 @@ function abcHaxballAPI(window, config){
     _fixNames(ob, [null, "id", "type", "data1", "data2", "byId"]);
     _fixNames(CustomEvent, [null, null, null, "byId"]);
     _fixNames(Wb, ["data", "id", "dist"]);
-    _fixNames(Fb, ["version", "name", "flag", "lat", "lon", "password", "maxPlayers", "players"]);
+    _fixNames(Fb, [
+      "version",
+      "name",
+      "flag",
+      "lat",
+      "lon",
+      "password",
+      "maxPlayers",
+      "players",
+    ]);
     Object.defineProperty(h.prototype, "isCustom", {
-      get: function(){
+      get: function () {
         return !this.Pe();
-      }
+      },
     });
   }
 
@@ -10832,19 +11629,19 @@ function abcHaxballAPI(window, config){
     VariableType,
     ConnectionState,
     AllowFlags,
-    Direction, 
+    Direction,
     CollisionFlags,
-    CameraFollow, 
-    BackgroundType, 
+    CameraFollow,
+    BackgroundType,
     GamePlayState,
     Callback: {
       add: createEventCallback,
-      remove: destroyEventCallback
+      remove: destroyEventCallback,
     },
     Utils: {
-      generateAuth, 
+      generateAuth,
       authFromKey,
-      getRoomList, 
+      getRoomList,
       calculateAllRoomDistances,
       numberToColor,
       colorToNumber,
@@ -10856,15 +11653,15 @@ function abcHaxballAPI(window, config){
       stadiumChecksum,
       parseStadium,
       exportStadium,
-      getDefaultStadiums
+      getDefaultStadiums,
     },
     Room: {
       join: joinRoom,
       create: createRoom,
-      sandbox: createSandbox
+      sandbox: createSandbox,
     },
     Replay: {
-      read: readReplay
+      read: readReplay,
       //Recorder: ac
     },
     Query: {
@@ -10880,7 +11677,7 @@ function abcHaxballAPI(window, config){
       getJointAtMapCoord: getJointAtMapCoord,
       getDiscIndexAtMapCoord: getDiscIndexAtMapCoord,
       getDiscAtMapCoord: getDiscAtMapCoord,
-      getSpawnPointIndexAtMapCoord: getSpawnPointIndexAtMapCoord
+      getSpawnPointIndexAtMapCoord: getSpawnPointIndexAtMapCoord,
     },
     Library,
     RoomConfig,
@@ -10889,7 +11686,7 @@ function abcHaxballAPI(window, config){
     Language,
     Errors: {
       HBError,
-      ErrorCodes
+      ErrorCodes,
     },
     Impl: {
       Core: {
@@ -10912,16 +11709,14 @@ function abcHaxballAPI(window, config){
         n, // connection constants
         va, // RoomList operations
         q, // global error class
-      }
-    }
+      },
+    },
   };
 }
 
-if (typeof exports !== 'undefined') {
-  if (typeof module !== 'undefined' && module.exports)
+if (typeof exports !== "undefined") {
+  if (typeof module !== "undefined" && module.exports)
     exports = module.exports = abcHaxballAPI;
   exports.abcHaxballAPI = abcHaxballAPI;
-} else if (typeof root !== 'undefined')
-  root['abcHaxballAPI'] = abcHaxballAPI;
-else
-  window['abcHaxballAPI'] = abcHaxballAPI;
+} else if (typeof root !== "undefined") root["abcHaxballAPI"] = abcHaxballAPI;
+else window["abcHaxballAPI"] = abcHaxballAPI;
